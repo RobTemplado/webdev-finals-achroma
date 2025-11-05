@@ -29,7 +29,7 @@ export default function Home() {
           setLocked(v);
         }}
       />
-      <Preloader />
+      {!started && <Preloader />}
       <TitleScreen started={started} onStart={() => setStarted(true)} />
       
       <GameUI isTouch={isTouch} />
