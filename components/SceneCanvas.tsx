@@ -18,6 +18,7 @@ import Effects from "@/components/Effects";
 import SoundProvider from "@/components/audio/SoundProvider";
 import { useSound } from "@/components/audio/useSound";
 import RadioNarration from "@/components/RadioNarration";
+import Basement from "./scenes/Basement";
 
 export default function SceneCanvas({
   isTouch,
@@ -37,18 +38,17 @@ export default function SceneCanvas({
       id="r3f-canvas"
       shadows={!isTouch}
       dpr={[1, isTouch ? 1.5 : 2]}
+      
       gl={{
         antialias: !isTouch,
         powerPreference: "high-performance",
+        toneMapping: ACESFilmicToneMapping,
+        toneMappingExposure: 1.0,
         stencil: false,
         alpha: false,
         precision: isTouch ? "mediump" : "highp",
       }}
       camera={{ position: [0, 1.6, 5], fov: 70 }}
-      onCreated={({ gl }) => {
-        gl.toneMapping = ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.0;
-      }}
     >
       <color attach="background" args={["#000"]} />
       <fog attach="fog" args={["#0a0a0a", 5, 35]} />
@@ -60,11 +60,11 @@ export default function SceneCanvas({
           <Physics gravity={[0, -9.81, 0]} debug={!isTouch}>
             <Environment
               preset="night"
-              background={false}
-              environmentIntensity={0.7}
+              background={true}
+              environmentIntensity={0.5}
             />
 
-            <HorrorCorridor position={[0, 0, 0]} rotation={[0, 0, 0]} />
+            <Basement position={[0, 1, 0]} />
 
             {/* Ground */}
             <RigidBody type="fixed" colliders={false}>

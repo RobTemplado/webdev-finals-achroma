@@ -10,18 +10,35 @@ export default function Preloader() {
   const [visible, setVisible] = useState(true);
   const [fade, setFade] = useState(false);
   const [mode, setMode] = useState<ColorBlindMode>("none");
+  const [audioReady, setAudioReady] = useState(false);
+
+  // Ensure audio buffers are decoded before leaving preload screen
+  useEffect(() => {
+    const already = (window as any).__audio_ready__ === true;
+    if (already) {
+      setAudioReady(true);
+      return;
+    }
+    const onReady = () => setAudioReady(true);
+    window.addEventListener("__audio_ready__", onReady, { once: true } as any);
+    return () => window.removeEventListener("__audio_ready__", onReady as any);
+  }, []);
 
   // When loading completes, fade out then unmount
   useEffect(() => {
-    const done = !active && (progress >= 100 || (loaded > 0 && loaded >= total));
+    const done = !active && (progress >= 100 || (loaded > 0 && loaded >= total)) && audioReady;
     if (done && visible && !fade) {
       setFade(true);
       const timer = setTimeout(() => setVisible(false), 400);
       return () => clearTimeout(timer);
     }
-  }, [active, progress, loaded, total, visible, fade]);
+  }, [active, progress, loaded, total, visible, fade, audioReady]);
 
-  const pct = useMemo(() => Math.min(100, Math.max(0, Math.round(progress))), [progress]);
+  const pct = useMemo(() => {
+    const base = Math.min(100, Math.max(0, Math.round(progress)));
+    // Keep UI below 100% until audio is ready
+    return audioReady ? base : Math.min(base, 99);
+  }, [progress, audioReady]);
 
   // Automatically cycle color-vision modes to create a title-screen effect
   useEffect(() => {

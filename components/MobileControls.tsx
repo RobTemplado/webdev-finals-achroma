@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { addLookDelta, setMoveAxes, setTouchMode } from "./inputStore";
+import { addLookDelta, setMoveAxes, setTouchMode, pressInteract } from "./inputStore";
 
 type Props = {
   onToggleFlashlight?: () => void;
@@ -217,6 +217,32 @@ export default function MobileControls({ onToggleFlashlight }: Props) {
           className="absolute bottom-3 right-3 z-30 h-12 px-4 rounded-lg bg-white/10 border border-white/20 text-white text-sm active:scale-95"
         >
           Flashlight
+        </button>
+
+        {/* Interact button (E equivalent) */}
+        <button
+          type="button"
+          aria-label="Interact"
+          onClick={(e) => {
+            e.stopPropagation();
+            pressInteract();
+          }}
+          onTouchStart={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onTouchMove={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            pressInteract();
+          }}
+          className="absolute bottom-3 right-28 z-30 h-12 px-4 rounded-lg bg-white/10 border border-white/20 text-white text-sm active:scale-95"
+        >
+          Interact
         </button>
 
         {/* Onboarding hints overlay */}
