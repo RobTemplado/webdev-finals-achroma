@@ -3,40 +3,10 @@
 import { PointerLockControls } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Vector3 } from "three";
+import { Matrix4, Quaternion, Vector3 } from "three";
 import { RigidBody, CapsuleCollider } from "@react-three/rapier";
 import type { RapierRigidBody } from "@react-three/rapier";
-import { getMoveAxes, consumeLookDelta, isTouchMode } from "./inputStore";
-
-function useWASD() {
-  const [state, set] = useState({
-    w: false,
-    a: false,
-    s: false,
-    d: false,
-  });
-  useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.code === "KeyW") set((s) => ({ ...s, w: true }));
-      if (e.code === "KeyA") set((s) => ({ ...s, a: true }));
-      if (e.code === "KeyS") set((s) => ({ ...s, s: true }));
-      if (e.code === "KeyD") set((s) => ({ ...s, d: true }));
-    };
-    const up = (e: KeyboardEvent) => {
-      if (e.code === "KeyW") set((s) => ({ ...s, w: false }));
-      if (e.code === "KeyA") set((s) => ({ ...s, a: false }));
-      if (e.code === "KeyS") set((s) => ({ ...s, s: false }));
-      if (e.code === "KeyD") set((s) => ({ ...s, d: false }));
-    };
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-    return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
-    };
-  }, []);
-  return state;
-}
+import { getMoveAxes, consumeLookDelta, isTouchMode, setMoveAxes } from "./inputStore";
 
 export default function FPSControls({
   // Movement
@@ -108,7 +78,7 @@ export default function FPSControls({
   onLockChange?: (locked: boolean) => void;
 }) {
   const { camera } = useThree();
-  const keys = useWASD();
+  // Movement now unified via inputStore (keyboard + touch). No local WASD tracking.
   const right = useMemo(() => new Vector3(), []);
   const dir = useMemo(() => new Vector3(), []);
   const worldDir = useMemo(() => new Vector3(), []);
@@ -116,7 +86,6 @@ export default function FPSControls({
   const bobRef = useRef({
     phase: 0,
     intensity: 0,
-    lastPhase: 0,
     smoothedHz: 0,
     smoothedVertical: 0,
     smoothedLateral: 0,
@@ -140,6 +109,19 @@ export default function FPSControls({
   });
   const [debugOn, setDebugOn] = useState<boolean>(!!debugBob);
   const [isTouch, setIsTouch] = useState(false);
+  const [plcEnabled, setPlcEnabled] = useState(true); // pointer lock enabled flag
+  const overrideRef = useRef<{
+    timeLeft: number;
+    duration: number;
+    speed: number; // m/s
+    dir: Vector3;
+    lockLook: boolean;
+    lookAt?: Vector3;
+    lookSlerp?: number; // per-second slerp rate
+    moveDelayLeft: number; // seconds before movement begins
+  } | null>(null);
+  const lookMat = useMemo(() => new Matrix4(), []);
+  const targetQuat = useMemo(() => new Quaternion(), []);
 
   // Detect touch devices to disable pointer lock and use touch look instead
   useEffect(() => {
@@ -164,6 +146,45 @@ export default function FPSControls({
     return () => window.removeEventListener("keydown", onKey);
   }, [debugToggleKey]);
 
+  // Listen for external scripted movement trigger (door open sequence)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as
+        | {
+            durationSec?: number;
+            distance?: number;
+            lockLook?: boolean;
+            lookAt?: [number, number, number];
+            lookSlerp?: number;
+            moveDelaySec?: number;
+          }
+        | undefined;
+      const durationSec = Math.max(0.05, detail?.durationSec ?? 1.2);
+      const distance = Math.max(0.05, detail?.distance ?? 1.5);
+      const lockLook = detail?.lockLook ?? true;
+      const dir = new Vector3();
+      camera.getWorldDirection(dir);
+      dir.y = 0;
+      if (dir.lengthSq() < 1e-6) dir.set(0, 0, -1);
+      dir.normalize();
+      overrideRef.current = {
+        timeLeft: durationSec,
+        duration: durationSec,
+        speed: distance / durationSec,
+        dir,
+        lockLook,
+        lookAt: detail?.lookAt ? new Vector3(...detail.lookAt) : undefined,
+        lookSlerp: detail?.lookSlerp ?? 6,
+        moveDelayLeft: Math.max(0, detail?.moveDelaySec ?? 0.35),
+      };
+      if (lockLook) setPlcEnabled(false);
+      setMoveAxes(0, 0);
+    };
+    window.addEventListener("__scripted_move__", handler as EventListener);
+    return () =>
+      window.removeEventListener("__scripted_move__", handler as EventListener);
+  }, [camera]);
+
   // Derived offsets
   const halfHeight = capsuleHeight / 2;
   const baseOffset = halfHeight + capsuleRadius; // center->feet offset
@@ -174,11 +195,13 @@ export default function FPSControls({
     if (!body) return;
 
     // Read mobile movement axes (if any)
-    const axes = getMoveAxes();
-    const hasMobileMove = Math.abs(axes.x) > 0.001 || Math.abs(axes.y) > 0.001;
-    const usingTouch = isTouchMode();
-
-    const isMoving = keys.w || keys.a || keys.s || keys.d || hasMobileMove;
+  const axes = getMoveAxes();
+  const hasAxesMove = Math.abs(axes.x) > 0.001 || Math.abs(axes.y) > 0.001;
+  const usingTouch = isTouchMode();
+    const override = overrideRef.current;
+    // Allow normal movement whenever there is no scripted override; during override, gate by moveDelay
+    const canMove = override ? override.moveDelayLeft <= 0 : true;
+    const isMoving = override ? canMove : hasAxesMove;
 
     // Get forward direction from camera (flattened Y)
     camera.getWorldDirection(worldDir);
@@ -190,15 +213,21 @@ export default function FPSControls({
 
     // Movement direction from WASD or mobile axes
     dir.set(0, 0, 0);
-    if (usingTouch && hasMobileMove) {
-      // mobile: y => forward, x => strafe
+    if (override) {
+      if (canMove) dir.add(override.dir);
+    } else if (hasAxesMove) {
+      // Unified axes (keyboard or touch): y => forward, x => strafe
       dir.add(worldDir.clone().multiplyScalar(axes.y));
       dir.add(right.clone().multiplyScalar(axes.x));
-    } else {
-      if (keys.w) dir.add(worldDir);
-      if (keys.s) dir.add(worldDir.clone().multiplyScalar(-1));
-      if (keys.a) dir.add(right.clone().multiplyScalar(-1));
-      if (keys.d) dir.add(right);
+    }
+
+    // Smoothly rotate camera to face target only before movement starts
+    if (override && override.lockLook && override.lookAt && !canMove) {
+      // Build target quaternion from a lookAt matrix
+      lookMat.lookAt(camera.position, override.lookAt, upVec);
+      targetQuat.setFromRotationMatrix(lookMat);
+      const k = Math.min(1, Math.max(0, (override.lookSlerp ?? 6) * delta));
+      camera.quaternion.slerp(targetQuat, k);
     }
 
     // Desired horizontal velocity (m/s)
@@ -206,8 +235,9 @@ export default function FPSControls({
     let desiredZ = 0;
     if (isMoving && dir.lengthSq() > 0) {
       dir.normalize();
-      desiredX = dir.x * speed;
-      desiredZ = dir.z * speed;
+      const baseSpeed = override ? override.speed : speed;
+      desiredX = dir.x * baseSpeed;
+      desiredZ = dir.z * baseSpeed;
     }
 
     // Smooth acceleration/deceleration towards desired velocity
@@ -222,7 +252,29 @@ export default function FPSControls({
     };
     const newVX = moveTowards(lin.x, desiredX);
     const newVZ = moveTowards(lin.z, desiredZ);
-    body.setLinvel({ x: newVX, y: lin.y, z: newVZ }, true);
+    if (override) {
+      if (canMove) {
+        body.setLinvel({ x: newVX, y: lin.y, z: newVZ }, true);
+      } else {
+        // During pre-move look phase of override, freeze horizontal velocity
+        body.setLinvel({ x: 0, y: lin.y, z: 0 }, true);
+      }
+    } else {
+      // Normal free movement
+      body.setLinvel({ x: newVX, y: lin.y, z: newVZ }, true);
+    }
+
+    // Advance scripted sequence timer
+    if (override) {
+      if (override.moveDelayLeft > 0) {
+        override.moveDelayLeft = Math.max(0, override.moveDelayLeft - delta);
+      }
+      override.timeLeft -= delta;
+      if (override.timeLeft <= 0) {
+        overrideRef.current = null;
+        setPlcEnabled(true);
+      }
+    }
 
     // Head/camera bobbing (natural, speed-aligned and configurable)
     let vertical = 0;
@@ -249,13 +301,13 @@ export default function FPSControls({
         Math.min(1, stepSmoothing * delta);
       stepHz = bobRef.current.smoothedHz;
       if (bobRef.current.intensity > 0.001 && stepHz > 0.0001) {
-        bobRef.current.lastPhase = bobRef.current.phase;
+        const prevPhase = bobRef.current.phase;
         bobRef.current.phase =
           (bobRef.current.phase + stepHz * 2 * Math.PI * delta) % (Math.PI * 2);
 
         // Optional footstep callback at phase crossings (0 => right, pi => left by convention)
         if (onFootstep) {
-          const from = bobRef.current.lastPhase;
+          const from = prevPhase;
           const to = bobRef.current.phase;
           const crossed = (thr: number) =>
             (from < thr && to >= thr) ||
@@ -307,7 +359,7 @@ export default function FPSControls({
       (targetLateral - bobRef.current.smoothedLateral) * k;
 
     // Apply mobile look deltas to camera
-    if (usingTouch) {
+    if (usingTouch && !overrideRef.current) {
       const { dx, dy } = consumeLookDelta();
       if (dx !== 0 || dy !== 0) {
         const sens = 0.0025; // radians per pixel
@@ -344,7 +396,7 @@ export default function FPSControls({
       debugDataRef.current.lateralBobAmplitude = lateralBobAmplitude;
     }
   });
-  
+
   return (
     <>
       {/* Pointer lock for mouse look (disabled on touch devices)
@@ -352,6 +404,7 @@ export default function FPSControls({
       {!isTouch && (
         <PointerLockControls
           selector="#r3f-canvas"
+          enabled={plcEnabled}
           onLock={() => onLockChange?.(true)}
           onUnlock={() => onLockChange?.(false)}
         />
@@ -378,6 +431,7 @@ export default function FPSControls({
         ref={bodyRef}
         colliders={false}
         canSleep={false}
+        position={[2,0,-2]}
         linearDamping={4}
         angularDamping={1}
         enabledRotations={[false, false, false]}

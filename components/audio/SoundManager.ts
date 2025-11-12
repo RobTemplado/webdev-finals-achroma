@@ -11,6 +11,14 @@ export type OneShotOptions = {
   detune?: number; // cents (not all browsers)
 };
 
+// Options for playing only a segment of a loaded buffer
+export type SegmentOptions = OneShotOptions & {
+  /** Start time in seconds within the buffer */
+  start: number;
+  /** Optional duration (seconds). If omitted, plays until end of buffer. */
+  duration?: number;
+};
+
 export type PositionalOptions = OneShotOptions & {
   refDistance?: number;
   rolloffFactor?: number;
@@ -102,9 +110,16 @@ export class SoundManager {
 
   async load(name: string, url: string): Promise<void> {
     if (this.buffers.has(name)) return;
-    const res = await fetch(url);
-    const arr = await res.arrayBuffer();
-    const buf = await this.context.decodeAudioData(arr.slice(0));
+    // Use THREE.AudioLoader so loads participate in the global LoadingManager (preloader progress)
+    const loader = new THREE.AudioLoader();
+    const buf = await new Promise<AudioBuffer>((resolve, reject) => {
+      loader.load(
+        url,
+        (buffer) => resolve(buffer),
+        undefined,
+        (err) => reject(err)
+      );
+    });
     this.buffers.set(name, buf);
   }
 
@@ -152,6 +167,84 @@ export class SoundManager {
     // THREE.Audio doesn’t expose ended event, let it run; GC will collect after buffer end.
     // Optionally schedule a stop
     setTimeout(onEnd, (buf.duration + 0.1) * 1000);
+  }
+
+  /**
+   * Play a segment (slice) of an AudioBuffer without creating THREE.Audio wrapper.
+   * Useful for sprite-like usage (e.g., door open/close in same file).
+   */
+  playSegment(name: string, segment: SegmentOptions) {
+    // Ensure context is running to avoid start-up delay on some browsers
+    if (this.context.state !== "running") {
+      // fire-and-forget; we don't await to keep call sync
+      this.context.resume().catch(() => {});
+    }
+    console.log("Playing segment", name, segment);
+    const buf = this.getBuffer(name);
+    if (!buf) return;
+    const { start, duration, group = "sfx", volume = 1, playbackRate = 1, detune } = segment;
+    if (start >= buf.duration) return; // out of range
+    const playDur = Math.max(0, duration !== undefined ? duration : buf.duration - start);
+    if (playDur <= 0) return;
+
+    const ctx = this.context;
+    const source = ctx.createBufferSource();
+    source.buffer = buf;
+    source.playbackRate.value = playbackRate;
+    if (typeof detune === "number" && (source as any).detune) {
+      (source as any).detune.value = detune;
+    }
+
+  // Gain for volume with tiny de-click envelope
+  const gain = ctx.createGain();
+  const vol = Math.max(0, Math.min(1, volume));
+  const now = ctx.currentTime;
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(vol, now + 0.005);
+
+    // Route: source -> gain -> groupNode -> master
+    const groupNode = this.getGroupNode(group);
+    source.connect(gain);
+    gain.connect(groupNode);
+
+    // Start playback at offset with duration
+    try {
+      source.start(0, start, playDur);
+    } catch {
+      return;
+    }
+
+    // Cleanup after it finishes (consider playbackRate scaling)
+  // Schedule a tiny fade-out at the end to avoid clicks
+  const totalSec = playDur / playbackRate;
+  gain.gain.setValueAtTime(vol, now + Math.max(0, totalSec - 0.01));
+  gain.gain.linearRampToValueAtTime(0, now + Math.max(0, totalSec - 0.002));
+
+  const totalMs = totalSec * 1000 + 50;
+    setTimeout(() => {
+      try {
+        source.stop();
+      } catch {}
+      try {
+        source.disconnect();
+        gain.disconnect();
+      } catch {}
+    }, totalMs);
+  }
+
+  // Convenience helpers for door open/close using a single sprite file
+  playDoorOpen() {
+    // Account for encoder delay padding at the beginning of compressed files (mp3/aac)
+    // Fudge a tiny offset so the transient hits instantly
+    const OPEN_START = 0.0; // ~20ms
+    const OPEN_DUR = Math.max(0.05, 1.5 - OPEN_START);
+    this.playSegment("door_open_close", { start: OPEN_START, duration: OPEN_DUR, group: "sfx", volume: 1 });
+  }
+
+  playDoorClose() {
+    // Start slightly after the boundary to avoid overlap with the open slice boundary
+    const CLOSE_START = 1.52; // 0.1s + 20ms
+    this.playSegment("door_open_close", { start: CLOSE_START, group: "sfx", volume: 1 });
   }
 
   // Positional one-shot using THREE.PositionalAudio; user should attach node to an Object3D.

@@ -20,13 +20,15 @@ export function useSound() {
 }
 
 // Basic manifest of expected sounds (place files under public/audio/...)
-const DEFAULT_MANIFEST: Record<string, string> = {
+export const AUDIO_MANIFEST: Record<string, string> = {
   // footsteps
   footstep_1: "/audio/footsteps_1.m4a",
   footstep_2: "/audio/footsteps_2.m4a",
   footstep_3: "/audio/footsteps_3.m4a",
-  footstep_4: "/audio/footsteps_4.m4a"
+  footstep_4: "/audio/footsteps_4.m4a",
 
+  // door sprites file inside /public/audio/door/
+  door_open_close: "/audio/door/door_open_close.mp3",
 };
 
 export default function SoundProvider({ children }: { children: React.ReactNode }) {
@@ -55,9 +57,20 @@ export default function SoundProvider({ children }: { children: React.ReactNode 
     };
   }, [camera]);
 
-  // Preload default manifest (best-effort)
+  // Preload default manifest (best-effort) as early as possible and signal readiness globally
   useEffect(() => {
-    soundRef.current?.preload(DEFAULT_MANIFEST);
+    let cancelled = false;
+    (async () => {
+      try {
+        await soundRef.current?.preload(AUDIO_MANIFEST);
+      } finally {
+        if (!cancelled) {
+          (window as any).__audio_ready__ = true;
+          window.dispatchEvent(new Event("__audio_ready__"));
+        }
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
   // Auto-resume on first interaction as a safety net
