@@ -9,8 +9,17 @@ import TitleScreen from "@/components/TitleScreen";
 import { GameUI } from "@/components/game-ui/GameUI";
 import { MobileUI } from "@/components/mobile/MobileUI";
 import { useGameState } from "@/store/gameState";
+import { Suspense } from "react";
 
-export default function Home() {
+export default function Page() {
+  return (
+    <Suspense>
+      <Home />
+    </Suspense>
+  )
+}
+
+function Home() {
   const isTouch = useIsTouch();
   const { flashOn, started, setStarted, setLocked } = useGameState();
   const params = useSearchParams();
