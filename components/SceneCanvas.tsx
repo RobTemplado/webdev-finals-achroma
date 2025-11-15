@@ -52,7 +52,7 @@ export default function SceneCanvas({
   const dev = process.env.NODE_ENV !== "production";
   const [lowPerf, setLowPerf] = useState(false);
   const dprRange = useMemo<[number, number]>(
-    () => [1, isTouch ? (lowPerf ? 1.1 : 1.5) : (lowPerf ? 1.25 : 2)],
+    () => [1, isTouch ? (lowPerf ? 1.1 : 1.5) : lowPerf ? 1.25 : 2],
     [isTouch, lowPerf]
   );
   // Access sound inside Canvas to resume on pointer lock and trigger SFX

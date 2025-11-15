@@ -31,7 +31,11 @@ export const AUDIO_MANIFEST: Record<string, string> = {
   door_open_close: "/audio/door/door_open_close.mp3",
 };
 
-export default function SoundProvider({ children }: { children: React.ReactNode }) {
+export default function SoundProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const { camera } = useThree();
 
   const listenerRef = useRef<THREE.AudioListener | null>(null);
@@ -39,10 +43,13 @@ export default function SoundProvider({ children }: { children: React.ReactNode 
 
   // Ensure three.js uses an AudioContext configured for playback (lower latency not required)
   if (typeof (THREE as any).AudioContext?.getContext === "function") {
-    const current: AudioContext | undefined = (THREE as any).AudioContext.getContext?.();
+    const current: AudioContext | undefined = (
+      THREE as any
+    ).AudioContext.getContext?.();
     if (!current || current.state === "closed") {
       try {
-        const Ctor = (window as any).AudioContext || (window as any).webkitAudioContext;
+        const Ctor =
+          (window as any).AudioContext || (window as any).webkitAudioContext;
         const ctx: AudioContext = new Ctor({ latencyHint: "playback" });
         (THREE as any).AudioContext.setContext?.(ctx);
       } catch {}
@@ -82,7 +89,9 @@ export default function SoundProvider({ children }: { children: React.ReactNode 
         }
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Auto-resume on first interaction as a safety net
@@ -96,11 +105,16 @@ export default function SoundProvider({ children }: { children: React.ReactNode 
     };
   }, []);
 
-  const value = useMemo<SoundContextValue>(() => ({
-    sound: soundRef.current!,
-    listener: listenerRef.current!,
-    resume: () => soundRef.current!.resume(),
-  }), []);
+  const value = useMemo<SoundContextValue>(
+    () => ({
+      sound: soundRef.current!,
+      listener: listenerRef.current!,
+      resume: () => soundRef.current!.resume(),
+    }),
+    []
+  );
 
-  return <SoundContext.Provider value={value}>{children}</SoundContext.Provider>;
+  return (
+    <SoundContext.Provider value={value}>{children}</SoundContext.Provider>
+  );
 }
