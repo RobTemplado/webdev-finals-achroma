@@ -33,7 +33,7 @@ export function KinematicMeshCollider({ scene, name }: Props) {
   // Find the mesh in the scene graph
   const mesh = useMemo(() => {
     if (!scene) return null;
-    const object = scene.getObjectByName(name);
+    const object = scene.getObjectByName(name) as any | undefined;
 
     // find the mesh in the object
     let foundMesh: THREE.Mesh | null = null;
@@ -44,7 +44,7 @@ export function KinematicMeshCollider({ scene, name }: Props) {
         foundMesh = object as THREE.Mesh;
       } else {
         // Case 2: The object is a group, find the first mesh inside
-        object.traverse((child) => {
+        object.traverse((child: any) => {
           if (child.isMesh && !foundMesh) {
             foundMesh = child as THREE.Mesh;
           }
@@ -69,7 +69,10 @@ export function KinematicMeshCollider({ scene, name }: Props) {
   }, [scene, name]);
 
   // Calculate the collider's size and offset from the mesh's geometry
-  const { center, halfExtents } = useMemo(() => {
+  const { center, halfExtents } = useMemo<{
+    center: [number, number, number];
+    halfExtents: [number, number, number];
+  }>(() => {
     if (!mesh || !mesh.geometry) {
       // Fallback if mesh not found
       return { center: [0, 0, 0], halfExtents: [0.1, 0.1, 0.1] };
@@ -93,11 +96,11 @@ export function KinematicMeshCollider({ scene, name }: Props) {
 
     return {
       center: scaledCenter.toArray() as [number, number, number],
-      halfExtents: [
-        scaledSize.x / 2,
-        scaledSize.y / 2,
-        scaledSize.z / 2,
-      ] as [number, number, number],
+      halfExtents: [scaledSize.x / 2, scaledSize.y / 2, scaledSize.z / 2] as [
+        number,
+        number,
+        number
+      ],
     };
   }, [mesh]);
 

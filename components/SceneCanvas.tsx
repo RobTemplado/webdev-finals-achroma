@@ -176,7 +176,7 @@ export default function SceneCanvas({
 
               {!editor && (
                 <FPSControls
-                  speed={10.1}
+                  speed={1.0}
                   eyeHeight={3.85}
                   capsuleHeight={1.85}
                   capsuleRadius={0.25}
