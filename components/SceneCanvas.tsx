@@ -154,12 +154,6 @@ export default function SceneCanvas({
         <Suspense fallback={null}>
           <SoundProvider>
             <SoundBridge onPointerLockChange={onPointerLockChange} />{" "}
-            <Wall
-              startPos={[-10.15, 0, -5.5]}
-              endPos={[-10.15, 0, -10.5]}
-              height={3}
-              depth={0.2}
-            />
             {started && <RadioNarration />}
             <Physics gravity={[0, -9.81, 0]} debug={!isTouch && !editor}>
               <Basement position={[0, 1, 0]} />
