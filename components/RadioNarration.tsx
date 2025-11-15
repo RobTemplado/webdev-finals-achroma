@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useProgress } from "@react-three/drei";
+import { useThree } from "@react-three/fiber";
+import * as THREE from "three";
 import { useSound } from "@/components/audio/useSound";
 
 type SubtitleOptions = {
@@ -49,10 +51,12 @@ const SUBTITLE_OPTS = {
 export default function RadioNarration() {
   const { active, progress, loaded, total } = useProgress();
   const { sound, resume } = useSound();
+  const { scene } = useThree();
 
   const startedRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
+  const radioRef = useRef<THREE.Object3D | null>(null);
 
   // Define paragraphs and subtitles
   const sequence = useMemo<Para[]>(
@@ -125,9 +129,16 @@ export default function RadioNarration() {
           },
           {
             atMs: 6200,
-            text: " He was unharmed, found sitting in a rocking chair, facing the corner. His wife and two children were found deceased in their beds.",
+            text: " He was unharmed, found sitting in a rocking chair, facing the corner.",
             options: {
-              lineDurationMs: 7100,
+              lineDurationMs: 3100,
+            },
+          },
+          {
+            atMs: 9400,
+            text: " His wife and two children were found deceased in their beds.",
+            options: {
+              lineDurationMs: 4000,
             },
           },
         ],
@@ -136,7 +147,29 @@ export default function RadioNarration() {
       },
       {
         url: "/audio/radio/paragraph_4.wav",
-        subs: [],
+        subs: [
+          {
+            atMs: 0,
+            text: "The suspect offered no resistance and has been described by authorities as 'detached' and 'unresponsive' to questioning.",
+            options: {
+              lineDurationMs: 4000,
+            },
+          },
+          {
+            atMs: 4100,
+            text: " He has made only one statement, repeated several times to the arresting officers.",
+            options: {
+              lineDurationMs: 3000,
+            },
+          },
+          {
+            atMs: 7200,
+            text: ' He claimed he was, quote, "Making the colors quiet."',
+            options: {
+              lineDurationMs: 4000,
+            },
+          },
+        ],
         subtitle:
           "The suspect offered no resistance and has been described by authorities as 'detached' and 'unresponsive' to questioning. He has made only one statement, repeated several times to the arresting officers. He claimed he was, quote, \"Making the colors quiet.\"",
       },
@@ -144,15 +177,13 @@ export default function RadioNarration() {
     []
   );
 
-  // Helper to decode a wav into AudioBuffer via SoundManager's AudioContext
-  const decode = async (
-    url: string,
-    signal?: AbortSignal
-  ): Promise<AudioBuffer> => {
-    const res = await fetch(url, { signal });
-    if (!res.ok) throw new Error(`Failed to fetch ${url}`);
-    const arr = await res.arrayBuffer();
-    return await sound.context.decodeAudioData(arr.slice(0));
+  // Try to locate the "Radio" object in the scene graph
+  const findRadio = (): THREE.Object3D | null => {
+    // Cache result after first successful lookup
+    if (radioRef.current && radioRef.current.parent) return radioRef.current;
+    const obj = scene.getObjectByName("Radio");
+    if (obj) radioRef.current = obj;
+    return obj ?? null;
   };
 
   // Start sequence when assets finished AND audio context is running
@@ -219,21 +250,94 @@ export default function RadioNarration() {
     abortRef.current = ac;
 
     (async () => {
+      // Ensure we have the Radio object (try briefly before falling back)
+      let radioObj: THREE.Object3D | null = findRadio();
+      const startedAt = performance.now();
+      while (!radioObj && performance.now() - startedAt < 2000) {
+        if (ac.signal.aborted) break;
+        await new Promise((r) => setTimeout(r, 100));
+        radioObj = findRadio();
+      }
+
       for (let i = 0; i < sequence.length; i++) {
         if (ac.signal.aborted) break;
         const para = sequence[i];
         try {
-          const buffer = await decode(para.url, ac.signal);
+          // Load into SoundManager cache (idempotent)
+          const name = `radio_para_${i + 1}`;
+          await sound.load(name, para.url).catch(() => void 0);
           if (ac.signal.aborted) break;
 
-          // Create a BufferSource into the ambient group, via a local gain node so we can set radio volume
-          const src = sound.context.createBufferSource();
-          src.buffer = buffer;
-          const groupGain = sound.getGroupNode("ambient");
-          const radioGain = sound.context.createGain();
-          radioGain.gain.value = 0.15; // reduce radio loudness (0..1)
-          src.connect(radioGain);
-          radioGain.connect(groupGain);
+          // If we found a Radio object, use positional audio attached to it.
+          // Otherwise, fall back to non-positional buffer source routed to ambient.
+          let cleanup: (() => void) | null = null;
+          let durationSec = 0;
+          let usingPositional = false;
+          const buf = (sound as any).getBuffer?.(name) as
+            | AudioBuffer
+            | undefined;
+
+          if (radioObj && buf) {
+            const pa = sound.createPositional(name, {
+              volume: 0.18,
+              refDistance: 2,
+              rolloffFactor: 1.5,
+              maxDistance: 24,
+            });
+            if (pa) {
+              radioObj.add(pa);
+              durationSec = buf.duration;
+              usingPositional = true;
+              try {
+                pa.play();
+              } catch {}
+              cleanup = () => {
+                try {
+                  pa.stop();
+                } catch {}
+                try {
+                  radioObj!.remove(pa);
+                } catch {}
+                try {
+                  (pa as any).disconnect?.();
+                } catch {}
+              };
+            }
+          }
+
+          // Fallback: non-positional playback routed to ambient group
+          let src: AudioBufferSourceNode | null = null;
+          let radioGain: GainNode | null = null;
+          if (!usingPositional) {
+            const buffer: AudioBuffer =
+              buf ??
+              (await fetch(para.url)
+                .then((r) => r.arrayBuffer())
+                .then((a) => sound.context.decodeAudioData(a.slice(0))));
+            if (ac.signal.aborted) break;
+            src = sound.context.createBufferSource();
+            src.buffer = buffer;
+            const groupGain = sound.getGroupNode("ambient");
+            radioGain = sound.context.createGain();
+            radioGain.gain.value = 0.15;
+            src.connect(radioGain);
+            radioGain.connect(groupGain);
+            durationSec = buffer.duration;
+            try {
+              src.start();
+            } catch {}
+            cleanup = () => {
+              try {
+                src?.stop();
+              } catch {}
+              try {
+                src?.disconnect();
+              } catch {}
+              try {
+                radioGain?.disconnect();
+              } catch {}
+            };
+          }
 
           // Keep track of current subtitle index
           setCurrentIndex(i);
@@ -251,21 +355,17 @@ export default function RadioNarration() {
           const onEnded = () => {
             ended = true;
             try {
-              src.disconnect();
-            } catch {}
-            try {
-              radioGain.disconnect();
+              cleanup?.();
             } catch {}
             clearScheduled();
           };
-          src.addEventListener("ended", onEnded);
 
-          try {
-            src.start();
-          } catch (err) {
-            console.warn("Radio paragraph failed to start:", err);
-            onEnded();
-          }
+          // As THREE.Audio doesn't reliably expose ended, schedule a timeout guard
+          const endHandle = window.setTimeout(
+            onEnded,
+            Math.max(50, (durationSec + 0.05) * 1000)
+          );
+          scheduled.push(endHandle);
 
           // Dispatch subtitles for this paragraph
           if (para.subs && para.subs.length > 0) {
@@ -307,7 +407,6 @@ export default function RadioNarration() {
           await new Promise<void>((resolve) => {
             const check = () => {
               if (ac.signal.aborted || ended) return resolve();
-              // Poll at low cost; 'ended' event should fire but some platforms are flaky
               setTimeout(check, 50);
             };
             check();
