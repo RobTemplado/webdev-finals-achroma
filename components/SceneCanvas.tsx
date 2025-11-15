@@ -95,16 +95,13 @@ export default function SceneCanvas({
                     />
                   </RigidBody>
 
-                  {!isTouch && (
-                    <ContactShadows
-                      position={[0, -0.49, 0]}
-                      opacity={0.4}
-                      scale={30}
-                      blur={3}
-                      far={15}
-                    />
-                  )}
-
+                  <ContactShadows
+                    position={[0, -0.49, 0]}
+                    opacity={0.4}
+                    scale={30}
+                    blur={3}
+                    far={15}
+                  />
                   {/* No FPS controls in editor (use OrbitControls) */}
 
                   {/* Optional: leave flashlight off while editing */}
@@ -138,7 +135,7 @@ export default function SceneCanvas({
         dpr={[1, isTouch ? 1.5 : 2]}
         gl={{
           outputColorSpace: SRGBColorSpace,
-          antialias: !isTouch,
+          antialias: true,
           powerPreference: "high-performance",
           toneMapping: ACESFilmicToneMapping,
           toneMappingExposure: 1.0,
