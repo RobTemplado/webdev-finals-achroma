@@ -50,52 +50,14 @@ function useBasementDoor(scene: THREE.Group | undefined) {
     }
   }, [scene]);
 
-  // Interaction is now unified via inputStore (pressInteract & consumeInteract)
-
-  // Poll mobile interact flag each frame; also advance opening animation
-  useFrame((_, delta) => {
-    if (consumeInteract()) {
-      // Prioritize DoorEnd teleport logic if near
-      if (!tryDoorEndTeleport()) {
-        console.log("Trying to open DoorStart");
-        // otherwise try to open DoorStart if near
-        tryOpenStart(true);
-      }
-    }
-    // Animate door opening
+  function closeDoor() {
     const door = _doorStartRef.current;
     if (!door) return;
-    if (openingRef.current) {
-      const speed = 1.2; // radians per second
-      const y = door.rotation.y;
-      const target = targetYRef.current;
-      const step = Math.sign(target - y) * speed * delta;
-      let next = y + step;
-      // clamp overshoot
-      if ((step > 0 && next >= target) || (step < 0 && next <= target)) {
-        next = target;
-        console.log("Door animation complete");
-        openingRef.current = false;
-        openedRef.current = !openedRef.current;
-      }
-      door.rotation.y = next;
-    }
-  });
-
-  function tryOpenStart(withScriptedMove: boolean) {
-    const door = _doorStartRef.current;
-    if (!door) {
-      console.warn("DoorStart not found or already opened");
-      return;
-    }
-    // Check proximity to camera
-    const doorPos = new THREE.Vector3();
-    door.getWorldPosition(doorPos);
-    const dist = doorPos.distanceTo(camera.position);
-    const threshold = 1.0; // meters
-    if (dist <= threshold) {
-      openStartDoor(withScriptedMove);
-    }
+    targetYRef.current = initialYRef.current;
+    openingRef.current = true;
+    openedRef.current = false;
+    // play close slice
+    sound.playDoorClose();
   }
 
   function openStartDoor(withScriptedMove: boolean) {
@@ -136,21 +98,46 @@ function useBasementDoor(scene: THREE.Group | undefined) {
     }, 3200);
   }
 
+  function tryOpenStart(withScriptedMove: boolean) {
+    const door = _doorStartRef.current;
+    if (!door) {
+      console.warn("DoorStart not found or already opened");
+      return;
+    }
+    // Check proximity to camera
+    const doorPos = new THREE.Vector3();
+    door.getWorldPosition(doorPos);
+    const dist = doorPos.distanceTo(camera.position);
+    const threshold = 1.0; // meters
+    if (dist <= threshold) {
+      openStartDoor(withScriptedMove);
+    }
+  }
+
   function tryDoorEndTeleport(): boolean {
     const doorEnd = _doorEndRef.current;
 
     const doorStart = _doorStartRef.current;
-    if (!doorEnd || !doorStart) return false;
+    if (!doorEnd || !doorStart) {
+      console.warn("DoorEnd or DoorStart not found");
+      return false;
+    }
     // Check proximity to DoorEnd
     const endPos = new THREE.Vector3();
     doorEnd.getWorldPosition(endPos);
     const dist = endPos.distanceTo(camera.position);
-    const threshold = 1.0; // meters
-    if (dist > threshold) return false;
+    const threshold = 3.0; // meters
+    if (dist > threshold) {
+      console.log("Too far from DoorEnd for teleport:", dist);
+      return false;
+    }
 
     // first walk towards door end (if not close enough yet)
     const doorPos = new THREE.Vector3();
-    if (!doorEnd) return false;
+    if (!doorEnd) {
+      console.warn("DoorEnd not found");
+      return false;
+    }
     doorEnd.getWorldPosition(doorPos);
     const distToDoorEnd = doorPos.distanceTo(camera.position);
     const approachThreshold = 1;
@@ -158,12 +145,13 @@ function useBasementDoor(scene: THREE.Group | undefined) {
       console.log("Approaching DoorEnd before teleport");
       window.dispatchEvent(
         new CustomEvent("__scripted_move__", {
-          detail: { durationSec: 1, distance: distToDoorEnd },
+          detail: { durationSec: 1, distance: distToDoorEnd + 0.6 },
         })
       );
       setTimeout(() => {
         tryDoorEndTeleport();
-      }, 1000);
+      }, 1100);
+      return true;
     }
 
     // Map player's local XZ offset relative to DoorEnd onto DoorStart, preserving distance and side offset
@@ -203,7 +191,7 @@ function useBasementDoor(scene: THREE.Group | undefined) {
     window.dispatchEvent(
       new CustomEvent("__teleport_to__", {
         detail: {
-          x: targetWorld.x + 0.8,
+          x: targetWorld.x,
           z: targetWorld.z,
           keepY: true,
           yaw: yaw,
@@ -216,15 +204,37 @@ function useBasementDoor(scene: THREE.Group | undefined) {
     return true;
   }
 
-  function closeDoor() {
+  // Interaction is now unified via inputStore (pressInteract & consumeInteract)
+
+  // Poll mobile interact flag each frame; also advance opening animation
+  useFrame((_, delta) => {
+    if (consumeInteract()) {
+      // Prioritize DoorEnd teleport logic if near
+      if (!tryDoorEndTeleport()) {
+        console.log("Trying to open DoorStart");
+        // otherwise try to open DoorStart if near
+        tryOpenStart(true);
+      }
+    }
+    // Animate door opening
     const door = _doorStartRef.current;
     if (!door) return;
-    targetYRef.current = initialYRef.current;
-    openingRef.current = true;
-    openedRef.current = false;
-    // play close slice
-    sound.playDoorClose();
-  }
+    if (openingRef.current) {
+      const speed = 1.2; // radians per second
+      const y = door.rotation.y;
+      const target = targetYRef.current;
+      const step = Math.sign(target - y) * speed * delta;
+      let next = y + step;
+      // clamp overshoot
+      if ((step > 0 && next >= target) || (step < 0 && next <= target)) {
+        next = target;
+        console.log("Door animation complete");
+        openingRef.current = false;
+        openedRef.current = !openedRef.current;
+      }
+      door.rotation.y = next;
+    }
+  });
 }
 
 export default useBasementDoor;

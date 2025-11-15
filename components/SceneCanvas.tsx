@@ -25,6 +25,7 @@ import LightsFromFile from "./editor/LightsFromFile";
 import dynamic from "next/dynamic";
 import * as THREE from "three";
 import { useEditorStore } from "./editor/editorStore";
+import BasementWalls from "./scenes/BasementWalls";
 
 // Lazy-load editor sidebar to keep normal play mode lean
 const LevelEditorSidebar = dynamic(() => import("./editor/LevelEditor"), {
@@ -57,67 +58,70 @@ export default function SceneCanvas({
       <div className="absolute inset-0 flex flex-row">
         <div className="relative flex-1 min-w-0">
           <Canvas
-      id="r3f-canvas"
-      shadows
-      dpr={[1, isTouch ? 1.5 : 2]}
-      gl={{
-        outputColorSpace: SRGBColorSpace,
-        antialias: !isTouch,
-        powerPreference: "high-performance",
-        toneMapping: ACESFilmicToneMapping,
-        toneMappingExposure: 1.0,
-        stencil: false,
-        alpha: false,
-        precision: isTouch ? "mediump" : "highp",
-      }}
-      camera={{ position: [0, 1.8, 5], fov: 70 }}
-    >
-      <color attach="background" args={["#000"]} />
-      <fog attach="fog" args={["#0a0a0a", 15, 35]} />
+            id="r3f-canvas"
+            shadows
+            dpr={[1, isTouch ? 1.5 : 2]}
+            gl={{
+              outputColorSpace: SRGBColorSpace,
+              antialias: !isTouch,
+              powerPreference: "high-performance",
+              toneMapping: ACESFilmicToneMapping,
+              toneMappingExposure: 1.0,
+              stencil: false,
+              alpha: false,
+              precision: isTouch ? "mediump" : "highp",
+            }}
+            camera={{ position: [0, 1.8, 5], fov: 70 }}
+          >
+            <color attach="background" args={["#000"]} />
+            <fog attach="fog" args={["#0a0a0a", 15, 35]} />
 
-      <Suspense fallback={null}>
-        <SoundProvider>
-          <SoundBridge onPointerLockChange={onPointerLockChange} />
-          {/* No radio narration while editing */}
-          <Physics gravity={[0, -9.81, 0]} debug={!isTouch && !editor}>
-            {/* Always load the Basement scene in editor */}
-            <Basement position={[0, 1, 0]} />
+            <Suspense fallback={null}>
+              <SoundProvider>
+                <SoundBridge onPointerLockChange={onPointerLockChange} />
+                {/* No radio narration while editing */}
+                <Physics gravity={[0, -9.81, 0]} debug={!isTouch && !editor}>
+                  {/* Always load the Basement scene in editor */}
+                  <Basement position={[0, 1, 0]} />
 
-            {/* Editable lights in editor mode, sourced from store */}
-            <EditorLights />
+                  {/* Editable lights in editor mode, sourced from store */}
+                  <EditorLights />
 
-            {/* Ground */}
-            <RigidBody type="fixed" colliders={false}>
-              <CuboidCollider args={[25, 0.1, 25]} position={[0, -0.5, 0]} />
-            </RigidBody>
+                  {/* Ground */}
+                  <RigidBody type="fixed" colliders={false}>
+                    <CuboidCollider
+                      args={[25, 0.1, 25]}
+                      position={[0, -0.5, 0]}
+                    />
+                  </RigidBody>
 
-            {!isTouch && (
-              <ContactShadows
-                position={[0, -0.49, 0]}
-                opacity={0.4}
-                scale={30}
-                blur={3}
-                far={15}
-              />
-            )}
+                  {!isTouch && (
+                    <ContactShadows
+                      position={[0, -0.49, 0]}
+                      opacity={0.4}
+                      scale={30}
+                      blur={3}
+                      far={15}
+                    />
+                  )}
 
-            {/* No FPS controls in editor (use OrbitControls) */}
+                  {/* No FPS controls in editor (use OrbitControls) */}
 
-            {/* Optional: leave flashlight off while editing */}
-          </Physics>
-        </SoundProvider>
+                  {/* Optional: leave flashlight off while editing */}
+                </Physics>
+              </SoundProvider>
 
-        <Effects isTouch={isTouch} />
-        {isTouch && <AdaptiveDpr pixelated />}
+              <Effects isTouch={isTouch} />
+              {isTouch && <AdaptiveDpr pixelated />}
 
-        <Stats className="stats-top-right" />
+              <Stats className="stats-top-right" />
 
-        {/* Editor camera/transform tools inside Canvas */}
-        <EditorCanvasTools />
+              {/* Editor camera/transform tools inside Canvas */}
+              <EditorCanvasTools />
 
-        <Preload all />
-      </Suspense>
-    </Canvas>
+              <Preload all />
+            </Suspense>
+          </Canvas>
         </div>
         {/* Docked right sidebar */}
         <LevelEditorSidebar />
@@ -129,41 +133,45 @@ export default function SceneCanvas({
   return (
     <>
       <Canvas
-      id="r3f-canvas"
-      shadows
-      dpr={[1, isTouch ? 1.5 : 2]}
-      gl={{
-        outputColorSpace: SRGBColorSpace,
-        antialias: !isTouch,
-        powerPreference: "high-performance",
-        toneMapping: ACESFilmicToneMapping,
-        toneMappingExposure: 1.0,
-        stencil: false,
-        alpha: false,
-        precision: isTouch ? "mediump" : "highp",
-      }}
-      camera={{ position: [0, 1.8, 5], fov: 70 }}
-    >
-      <color attach="background" args={["#000"]} />
-      <fog attach="fog" args={["#0a0a0a", 15, 35]} />
+        id="r3f-canvas"
+        shadows
+        dpr={[1, isTouch ? 1.5 : 2]}
+        gl={{
+          outputColorSpace: SRGBColorSpace,
+          antialias: !isTouch,
+          powerPreference: "high-performance",
+          toneMapping: ACESFilmicToneMapping,
+          toneMappingExposure: 1.0,
+          stencil: false,
+          alpha: false,
+          precision: isTouch ? "mediump" : "highp",
+        }}
+        camera={{ position: [0, 1.8, 5], fov: 70 }}
+      >
+        <color attach="background" args={["#000"]} />
+        <fog attach="fog" args={["#0a0a0a", 15, 35]} />
 
-      <Suspense fallback={null}>
-        <SoundProvider>
-          <SoundBridge onPointerLockChange={onPointerLockChange} />
-          {started && <RadioNarration />}
-          <Physics gravity={[0, -9.81, 0]} debug={!isTouch && !editor}>
+        <Suspense fallback={null}>
+          <SoundProvider>
+            <SoundBridge onPointerLockChange={onPointerLockChange} />{" "}
+            <Wall
+              startPos={[-10.15, 0, -5.5]}
+              endPos={[-10.15, 0, -10.5]}
+              height={3}
+              depth={0.2}
+            />
+            {started && <RadioNarration />}
+            <Physics gravity={[0, -9.81, 0]} debug={!isTouch && !editor}>
+              <Basement position={[0, 1, 0]} />
 
-            <Basement position={[0, 1, 0]} />
+              {/* Level lights rendered from JSON file (editor renders its own) */}
+              {!editor && <LightsFromFile />}
 
-            {/* Level lights rendered from JSON file (editor renders its own) */}
-            {!editor && <LightsFromFile />}
+              {/* Ground */}
+              <RigidBody type="fixed" colliders={false}>
+                <CuboidCollider args={[25, 0.1, 25]} position={[0, -0.5, 0]} />
+              </RigidBody>
 
-            {/* Ground */}
-            <RigidBody type="fixed" colliders={false}>
-              <CuboidCollider args={[25, 0.1, 25]} position={[0, -0.5, 0]} />
-            </RigidBody>
-
-            {!isTouch && (
               <ContactShadows
                 position={[0, -0.49, 0]}
                 opacity={0.4}
@@ -171,43 +179,43 @@ export default function SceneCanvas({
                 blur={3}
                 far={15}
               />
-            )}
 
-            {!editor && (
-            <FPSControls
-              speed={1.1}
-              eyeHeight={3.85}
-              capsuleHeight={1.85}
-              capsuleRadius={0.25}
-              initialYaw={INITIAL_YAW}
-              onLockChange={(locked) => {
-                // Also resume audio on lock
-                window.dispatchEvent(
-                  new CustomEvent("__pointerlock_change__", {
-                    detail: { locked },
-                  })
-                );
-              }}
-              onFootstep={(foot) => {
-                // Dispatch footstep event; SoundBridge will handle to keep hook usage inside provider
-                window.dispatchEvent(
-                  new CustomEvent("__footstep__", { detail: { foot } })
-                );
-              }}
-            />)}
+              {!editor && (
+                <FPSControls
+                  speed={10.1}
+                  eyeHeight={3.85}
+                  capsuleHeight={1.85}
+                  capsuleRadius={0.25}
+                  initialYaw={INITIAL_YAW}
+                  onLockChange={(locked) => {
+                    // Also resume audio on lock
+                    window.dispatchEvent(
+                      new CustomEvent("__pointerlock_change__", {
+                        detail: { locked },
+                      })
+                    );
+                  }}
+                  onFootstep={(foot) => {
+                    // Dispatch footstep event; SoundBridge will handle to keep hook usage inside provider
+                    window.dispatchEvent(
+                      new CustomEvent("__footstep__", { detail: { foot } })
+                    );
+                  }}
+                />
+              )}
 
-            {flashOn && <Flashlight />}
-          </Physics>
-        </SoundProvider>
+              {flashOn && <Flashlight />}
+            </Physics>
+          </SoundProvider>
 
-        <Effects isTouch={isTouch} />
-        {isTouch && <AdaptiveDpr pixelated />}
+          <Effects isTouch={isTouch} />
+          {isTouch && <AdaptiveDpr pixelated />}
 
-        <Stats className="stats-top-right" />
+          <Stats className="stats-top-right" />
 
-        <Preload all />
-      </Suspense>
-    </Canvas>
+          <Preload all />
+        </Suspense>
+      </Canvas>
     </>
   );
 }
@@ -284,10 +292,12 @@ function EditorLights() {
       const rect = dom.getBoundingClientRect();
       const x = ((ev.clientX - rect.left) / rect.width) * 2 - 1;
       const y = -((ev.clientY - rect.top) / rect.height) * 2 + 1;
-  const ray = rayRef.current;
-  const ndc = new THREE.Vector2(x, y);
-  ray.setFromCamera(ndc, camera);
-      const objs = Object.values(groupRefs.current).filter(Boolean) as THREE.Object3D[];
+      const ray = rayRef.current;
+      const ndc = new THREE.Vector2(x, y);
+      ray.setFromCamera(ndc, camera);
+      const objs = Object.values(groupRefs.current).filter(
+        Boolean
+      ) as THREE.Object3D[];
       if (objs.length === 0) return;
       const hits = ray.intersectObjects(objs, true);
       if (hits.length > 0) {
@@ -296,7 +306,10 @@ function EditorLights() {
         let n: THREE.Object3D | null = first;
         let found: THREE.Object3D | null = null;
         while (n) {
-          if (n.name?.startsWith?.("Light-")) { found = n; break; }
+          if (n.name?.startsWith?.("Light-")) {
+            found = n;
+            break;
+          }
           n = n.parent;
         }
         if (found) {
@@ -316,13 +329,15 @@ function EditorLights() {
   }, [gl, camera, setSelectedId]);
 
   return (
-    <group onPointerMissed={(e: ThreeEvent<PointerEvent>) => {
-      // deselect only when clicking empty space
-      if (e.button === 0) {
-        setSelectedId(null);
-        setTarget(undefined);
-      }
-    }}>
+    <group
+      onPointerMissed={(e: ThreeEvent<PointerEvent>) => {
+        // deselect only when clicking empty space
+        if (e.button === 0) {
+          setSelectedId(null);
+          setTarget(undefined);
+        }
+      }}
+    >
       <LightsFromFile
         editable
         lights={lights}
@@ -372,11 +387,20 @@ function EditorTransformControls({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.repeat) return;
-      if (e.key === "w" || e.key === "W") useEditorStore.getState().setMode("translate");
-      if (e.key === "e" || e.key === "E") useEditorStore.getState().setMode("rotate");
-      if (e.key === "r" || e.key === "R") useEditorStore.getState().setMode("scale");
-      if (e.key === "x" || e.key === "X") useEditorStore.getState().setSnap(!useEditorStore.getState().snap);
-      if (e.key === "l" || e.key === "L") useEditorStore.getState().setSpace(useEditorStore.getState().space === "world" ? "local" : "world");
+      if (e.key === "w" || e.key === "W")
+        useEditorStore.getState().setMode("translate");
+      if (e.key === "e" || e.key === "E")
+        useEditorStore.getState().setMode("rotate");
+      if (e.key === "r" || e.key === "R")
+        useEditorStore.getState().setMode("scale");
+      if (e.key === "x" || e.key === "X")
+        useEditorStore.getState().setSnap(!useEditorStore.getState().snap);
+      if (e.key === "l" || e.key === "L")
+        useEditorStore
+          .getState()
+          .setSpace(
+            useEditorStore.getState().space === "world" ? "local" : "world"
+          );
       if (e.key === "Delete") useEditorStore.getState().removeSelected();
     };
     window.addEventListener("keydown", onKey);
@@ -388,7 +412,9 @@ function EditorTransformControls({
     if (!target || !selectedId) return;
     const pos = target.position;
     const rot = target.rotation;
-    const patch: any = { position: [pos.x, pos.y, pos.z] as [number, number, number] };
+    const patch: any = {
+      position: [pos.x, pos.y, pos.z] as [number, number, number],
+    };
     // rotation applies to spot/rect
     patch.rotation = [rot.x, rot.y, rot.z] as [number, number, number];
     updateSelected(patch);
@@ -402,7 +428,7 @@ function EditorTransformControls({
       mode={mode}
       space={space}
       translationSnap={snap ? 0.5 : undefined}
-      rotationSnap={snap ? (Math.PI / 12) : undefined}
+      rotationSnap={snap ? Math.PI / 12 : undefined}
       scaleSnap={snap ? 0.1 : undefined}
       onObjectChange={onObjectChange}
     />
