@@ -8,6 +8,50 @@ import { useSound } from "@/components/audio/useSound";
 import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
+function enableShadowsOnObject(
+  scene: THREE.Scene,
+  name: string,
+  options: { cast?: boolean; receive?: boolean; logLabel?: string } = {}
+) {
+  const { cast = true, receive = false, logLabel } = options;
+  const object = scene.getObjectByName(name);
+  if (!object) return;
+
+  object.castShadow = cast;
+  object.receiveShadow = receive;
+
+  object.traverse((child) => {
+    if ((child as any).isMesh) {
+      if (logLabel) {
+        console.log(`enabling shadows on ${logLabel} mesh`, child.name);
+      }
+      const mesh = child as THREE.Mesh;
+      mesh.castShadow = cast;
+      mesh.receiveShadow = receive;
+    }
+  });
+
+  return object;
+}
+
+function setReceiveShadowOnObjects(scene: THREE.Scene, names: string[]) {
+  names.forEach((name) => {
+    const obj = scene.getObjectByName(name);
+    if (obj) {
+      obj.receiveShadow = true;
+    }
+  });
+}
+
+function setCastShadowOnObjects(scene: THREE.Scene, names: string[]) {
+  names.forEach((name) => {
+    const obj = scene.getObjectByName(name);
+    if (obj) {
+      obj.castShadow = true;
+    }
+  });
+}
+
 function Loop0Impl({ loop }: LoopComponentProps) {
   const { scene } = useThree();
   const { sound } = useSound();
@@ -22,56 +66,40 @@ function Loop0Impl({ loop }: LoopComponentProps) {
       windowCutter.visible = false;
     }
 
-    const doorStart = scene.getObjectByName("DoorStart");
-    if (doorStart) {
-      console.log("enabling shadows on doorStart");
-      doorStart.castShadow = true;
-      doorStart.traverse((child) => {
-        if ((child as any).isMesh) {
-          console.log("enabling shadows on doorStart mesh", child.name);
-          const mesh = child as THREE.Mesh;
-          mesh.castShadow = true;
-          mesh.receiveShadow = false;
-        }
-      });
-    }
+    enableShadowsOnObject(scene, "DoorStart", {
+      cast: true,
+      receive: false,
+      logLabel: "doorStart",
+    });
 
-    const doorFrameStart = scene.getObjectByName("DoorFrameStart");
-    if (doorFrameStart) {
-      console.log("enabling shadows on doorFrameStart");
-      doorFrameStart.castShadow = true;
-      doorFrameStart.traverse((child) => {
-        if ((child as any).isMesh) {
-          console.log("enabling shadows on doorFrameStart mesh", child.name);
-          const mesh = child as THREE.Mesh;
-          mesh.castShadow = true;
-          mesh.receiveShadow = false;
-        }
-      });
-    }
+    enableShadowsOnObject(scene, "Sketchfab_model.002", {
+      cast: true,
+      receive: false,
+    });
+
+    enableShadowsOnObject(scene, "DoorFrameStart", {
+      cast: true,
+      receive: false,
+      logLabel: "doorFrameStart",
+    });
 
     const wives = ["Wife"];
     wives.forEach((wifeName) => {
-      const wife = scene.getObjectByName(wifeName);
+      const wife = enableShadowsOnObject(scene, wifeName, {
+        cast: true,
+        receive: false,
+        logLabel: "wife",
+      });
+
       if (wife) {
-        wife.castShadow = true;
-        wife.receiveShadow = false;
-
-        wife.traverse((child) => {
-          if ((child as any).isMesh) {
-            console.log("enabling shadows on wife mesh", child.name);
-            const mesh = child as THREE.Mesh;
-            mesh.castShadow = true;
-            mesh.receiveShadow = false;
-          }
-        });
-
         wife.visible = false;
       }
     });
 
     const floors = [
       "Plane003",
+      "Plane009",
+      "Plane026",
       "Plane004",
       "Plane005",
       "Plane007",
@@ -81,35 +109,90 @@ function Loop0Impl({ loop }: LoopComponentProps) {
       "Plane021",
       "Plane031",
     ];
-    floors.forEach((floorName) => {
-      const floor = scene.getObjectByName(floorName);
-      if (floor) {
-        floor.receiveShadow = true;
-      }
+    setReceiveShadowOnObjects(scene, floors);
+
+    setCastShadowOnObjects(scene, [
+      "Old Wooden Classical Chair",
+      "OldWoodenClassicalChair",
+      "wood",
+      "wood001",
+    ]);
+
+    enableShadowsOnObject(scene, "Hanging Industrial Lamp", {
+      cast: true,
+      receive: false,
+      logLabel: "lamp",
     });
 
-    const lamp = scene.getObjectByName("hanging_industrial_lamp");
-    if (lamp) {
-      lamp.castShadow = true;
+    enableShadowsOnObject(scene, "SmallTable", {
+      cast: true,
+      receive: false,
+    });
 
-      lamp.traverse((child) => {
-        if ((child as any).isMesh) {
-          console.log("enabling shadows on lamp mesh", child.name);
-          const mesh = child as THREE.Mesh;
-          mesh.castShadow = true;
-          mesh.receiveShadow = false;
-        }
-      });
-    }
+    enableShadowsOnObject(scene, "Root001", {
+      cast: true,
+      receive: true,
+    });
+
+    enableShadowsOnObject(scene, "standing_picture_frame_02001", {
+      cast: true,
+      receive: false,
+    });
+
+    enableShadowsOnObject(scene, "Radio", {
+      cast: true,
+      receive: false,
+    });
+
+    enableShadowsOnObject(scene, "Sketchfab_model014", {
+      cast: true,
+      receive: false,
+    });
+
+    enableShadowsOnObject(scene, "Indoor_Table__Plant", {
+      cast: true,
+      receive: true,
+    });
+
+    setCastShadowOnObjects(scene, [
+      "Beer_Bottle_330ml011",
+      "Beer_Bottle_330ml013",
+      "Beer_Bottle_330ml012",
+      "Beer_Bottle_330ml014",
+      "Beer_Bottle_330ml015",
+      "Beer_Bottle_330ml010",
+      "Beer_Bottle_330ml004",
+      "Beer_Bottle_330ml003",
+      "Beer_Bottle_330ml005",
+      "Beer_Bottle_330ml007",
+      "Beer_Bottle_330ml009",
+    ]);
+~
+
+    setCastShadowOnObjects(scene, [
+      "hanging_picture_frame_02001",
+      "~001",
+      "Hanging_Industrial_Lamp"
+    ])
+
+    enableShadowsOnObject(scene, "TableLamp", {
+      cast: true,
+      receive: true,
+      logLabel: "first lamp",
+    });
 
     const wallBesideCabinets = [
       "Wall020",
+      "Wall036",
       "Wall015",
       "Wall033",
       "Wall014",
       "Wall023",
       "Wall003",
       "Wall004",
+      "Wall019",
+      "Wall034",
+      "Wall024",
     ];
     wallBesideCabinets.forEach((wallName) => {
       const wallBesideCabinet = scene.getObjectByName(wallName);
@@ -131,19 +214,24 @@ function Loop0Impl({ loop }: LoopComponentProps) {
       }
     });
 
-    const cabinet = scene.getObjectByName("Sketchfab_model010");
-    if (cabinet) {
-      // cabinet.castShadow = true;
-      // cabinet.receiveShadow = true;
+    const cabinet2 = scene.getObjectByName("Sketchfab_model002");
+    if (cabinet2) {
+      cabinet2.receiveShadow = true;
+      cabinet2.castShadow = true;
+    }
 
-      cabinet.traverse((child) => {
-        if ((child as any).isMesh) {
-          console.log("enabling shadows on cabinet mesh", child.name);
-          const mesh = child as THREE.Mesh;
-          mesh.castShadow = true;
-          mesh.receiveShadow = false;
-        }
-      });
+    const frame2 = scene.getObjectByName("standing_picture_frame_02001");
+    if (frame2) {
+      frame2.receiveShadow = true;
+      frame2.castShadow = true;
+    }
+    const cabinet = enableShadowsOnObject(scene, "Sketchfab_model010", {
+      cast: true,
+      receive: true,
+      logLabel: "cabinet",
+    });
+    if (cabinet) {
+      cabinet.visible = true;
     }
 
     const cube = scene.getObjectByName("Cube001");
