@@ -32,6 +32,8 @@ export const AUDIO_MANIFEST: Record<string, string> = {
 
   clock_tick_tack: "/audio/clock_tick_tack.mp3",
 
+  suspense: "/audio/suspense.mp3",
+
   light_on_off: "/audio/light_on_off.mp3",
   wife_crying: "/audio/wife_crying.mp3",
 

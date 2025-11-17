@@ -175,6 +175,12 @@ function Loop2Impl({ loop }: LoopComponentProps) {
       if (t01 >= 1) {
         slide.active = false;
         target.visible = false;
+        // Play suspense SFX when Wife finishes moving away
+        sound.playSegment("suspense", {
+          group: "sfx",
+          start: 0.2,
+          volume: 0.7,
+        });
       }
       return;
     }
