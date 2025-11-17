@@ -57,6 +57,7 @@ export class SoundManager {
   // music state
   private currentMusic?: THREE.Audio;
   private currentMusicName?: string;
+  private queuedMusic?: { name: string; opts: MusicOptions };
 
   // simple rate-limits
   private lastFootstepAt = 0;
@@ -249,6 +250,73 @@ export class SoundManager {
     this.playSegment("door_open_close", { start: CLOSE_START, group: "sfx", volume: 1 });
   }
 
+  playMusic(name: string, opts: MusicOptions = {}) {
+    // If the AudioContext is not yet running (no user interaction),
+    // remember this request so it can be started later.
+    if (this.context.state !== "running") {
+      this.queuedMusic = { name, opts };
+      return;
+    }
+
+    if (this.currentMusicName === name) return;
+
+    // Stop any existing music (optional fade-out based on previous options is not tracked)
+    this.stopMusic(opts.fade);
+
+    const buf = this.getBuffer(name);
+    if (!buf) return;
+
+    const src = new THREE.Audio(this.listener);
+    src.setBuffer(buf);
+    src.setLoop(opts.loop ?? false);
+    src.setVolume(0);
+    src.play();
+
+    this.currentMusic = src;
+    this.currentMusicName = name;
+
+    const targetVol = Math.max(0, Math.min(1, opts.volume ?? 1));
+    if (opts.fade && opts.fade > 0) {
+      tween(opts.fade, (t) => {
+        src.setVolume(t * targetVol);
+      });
+    } else {
+      src.setVolume(targetVol);
+    }
+  }
+
+  stopMusic(fade?: number) {
+    if (!this.currentMusic) return;
+    const src = this.currentMusic;
+    this.currentMusic = undefined;
+    this.currentMusicName = undefined;
+
+    const stopNow = () => {
+      try {
+        src.stop();
+      } catch {}
+    };
+
+    if (fade && fade > 0) {
+      const startVol = src.getVolume();
+      tween(fade, (t) => {
+        src.setVolume(startVol * (1 - t));
+      }, stopNow);
+    } else {
+      stopNow();
+    }
+  }
+
+  /**
+   * Called after a successful user interaction resume to play any queued music.
+   */
+  playQueuedMusic() {
+    if (!this.queuedMusic) return;
+    const queued = this.queuedMusic;
+    this.queuedMusic = undefined;
+    this.playMusic(queued.name, queued.opts);
+  }
+
   // Positional one-shot using THREE.PositionalAudio; user should attach node to an Object3D.
   createPositional(name: string, opts: PositionalOptions = {}): THREE.PositionalAudio | null {
     const buf = this.getBuffer(name);
@@ -263,47 +331,6 @@ export class SoundManager {
     if (opts.rolloffFactor !== undefined) src.setRolloffFactor(opts.rolloffFactor);
     if (opts.maxDistance !== undefined) src.setMaxDistance(opts.maxDistance);
     return src;
-  }
-
-  async playMusic(name: string, opts: MusicOptions = {}) {
-    const buf = this.getBuffer(name);
-    if (!buf) return;
-    const loop = opts.loop ?? true;
-    const vol = Math.max(0, Math.min(1, opts.volume ?? 0.8));
-    const fade = Math.max(0, opts.fade ?? 1.0);
-
-    const next = new THREE.Audio(this.listener);
-    next.setBuffer(buf);
-    next.setLoop(loop);
-    next.setVolume(0);
-    next.play();
-
-    const startFadeIn = () => tween(fade, (t) => next.setVolume(vol * t));
-
-    if (this.currentMusic) {
-      const prev = this.currentMusic;
-      tween(fade, (t) => prev.setVolume((1 - t) * prev.getVolume()), () => {
-        prev.stop();
-        (prev as any).disconnect?.();
-      });
-      startFadeIn();
-    } else {
-      startFadeIn();
-    }
-
-    this.currentMusic = next;
-    this.currentMusicName = name;
-  }
-
-  stopMusic(fadeSec = 0.8) {
-    if (!this.currentMusic) return;
-    const prev = this.currentMusic;
-    tween(fadeSec, (t) => prev.setVolume((1 - t) * prev.getVolume()), () => {
-      prev.stop();
-      (prev as any).disconnect?.();
-    });
-    this.currentMusic = undefined;
-    this.currentMusicName = undefined;
   }
 
   // Convenience variations

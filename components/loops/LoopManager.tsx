@@ -3,12 +3,15 @@
 import { memo } from "react";
 import { getLoopComponent } from "./loopRegistry";
 import { useGameState } from "@/store/gameState";
+import "./examples";
 
 function LoopManagerInner() {
   const loop = useGameState((s) => s.loop);
   const Comp = getLoopComponent(loop);
-  if (!Comp) return null;
-  // Key by loop so switching loops remounts the tree and cleans up
+  if (!Comp)  {
+    console.warn(`No component registered for loop ${loop}`);
+    return null;
+  };
   return (
     <group key={`loop-${loop}`}>
       <Comp loop={loop} />

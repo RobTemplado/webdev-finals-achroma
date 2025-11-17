@@ -74,8 +74,6 @@ export default function MobileControls({ onToggleFlashlight }: Props) {
 
   // Left area handlers (movement)
   const onLeftTouchStart = (e: React.TouchEvent) => {
-    // Prevent page gestures on iOS
-    e.preventDefault();
     e.stopPropagation();
     if (leftId.current != null) return;
     const t = e.changedTouches[0];
@@ -84,7 +82,6 @@ export default function MobileControls({ onToggleFlashlight }: Props) {
     updateStickVisual(0, 0);
   };
   const onLeftTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault();
     e.stopPropagation();
     if (leftId.current == null || !leftCenter.current) return;
     const t = getTouchById(e, leftId.current);
@@ -105,7 +102,6 @@ export default function MobileControls({ onToggleFlashlight }: Props) {
     if (!movedOnce && dist > deadZone * 1.25) setMovedOnce(true);
   };
   const onLeftTouchEnd = (e: React.TouchEvent) => {
-    e.preventDefault();
     e.stopPropagation();
     const id = leftId.current;
     if (id == null) return;
@@ -125,7 +121,6 @@ export default function MobileControls({ onToggleFlashlight }: Props) {
 
   // Right area handlers (look)
   const onRightTouchStart = (e: React.TouchEvent) => {
-    e.preventDefault();
     e.stopPropagation();
     if (rightId.current != null) return;
     const t = e.changedTouches[0];
@@ -133,7 +128,6 @@ export default function MobileControls({ onToggleFlashlight }: Props) {
     (onRightTouchMove as any)._prev = { x: t.clientX, y: t.clientY };
   };
   const onRightTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault();
     e.stopPropagation();
     if (rightId.current == null) return;
     const t = getTouchById(e, rightId.current);
@@ -153,7 +147,6 @@ export default function MobileControls({ onToggleFlashlight }: Props) {
     (onRightTouchMove as any)._prev = cur;
   };
   const onRightTouchEnd = (e: React.TouchEvent) => {
-    e.preventDefault();
     e.stopPropagation();
     const id = rightId.current;
     if (id == null) return;
@@ -202,15 +195,12 @@ export default function MobileControls({ onToggleFlashlight }: Props) {
             onToggleFlashlight?.();
           }}
           onTouchStart={(e) => {
-            e.preventDefault();
             e.stopPropagation();
           }}
           onTouchMove={(e) => {
-            e.preventDefault();
             e.stopPropagation();
           }}
           onTouchEnd={(e) => {
-            e.preventDefault();
             e.stopPropagation();
             onToggleFlashlight?.();
           }}
@@ -228,15 +218,12 @@ export default function MobileControls({ onToggleFlashlight }: Props) {
             pressInteract();
           }}
           onTouchStart={(e) => {
-            e.preventDefault();
             e.stopPropagation();
           }}
           onTouchMove={(e) => {
-            e.preventDefault();
             e.stopPropagation();
           }}
           onTouchEnd={(e) => {
-            e.preventDefault();
             e.stopPropagation();
             pressInteract();
           }}

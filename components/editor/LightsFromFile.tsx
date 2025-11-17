@@ -131,6 +131,7 @@ export default function LightsFromFile({
                   intensity={l.intensity}
                   width={l.width ?? 1}
                   height={l.height ?? 1}
+                  // castShadow
                 />
                 {(editable || showHelpers) && (
                   <mesh position={[0, 0, 0]}>

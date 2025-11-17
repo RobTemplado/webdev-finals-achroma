@@ -12,7 +12,7 @@ import "@/components/loops/examples/Loop0";
 import "@/components/loops/examples/Loop1";
 import { MobileUI } from "@/components/mobile/MobileUI";
 import { useGameState } from "@/store/gameState";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 
 export default function Page() {
   return (
@@ -24,9 +24,18 @@ export default function Page() {
 
 function Home() {
   const isTouch = useIsTouch();
-  const { flashOn, started, setStarted, setLocked } = useGameState();
+  const { flashOn, started, setStarted, setLocked, setLoop } = useGameState();
   const params = useSearchParams();
   const editor = (params.get("editor") ?? "") !== ""; // any value enables
+
+  // Debug: allow overriding loop via ?debugLoop=NUMBER (one-time effect)
+  useEffect(() => {
+    const debugLoopParam = params.get("debugLoop");
+    if (debugLoopParam == null) return;
+    const parsed = Number.parseInt(debugLoopParam, 10);
+    if (Number.isNaN(parsed)) return;
+    setLoop(parsed);
+  }, [params, setLoop]);
 
   useViewportVH();
 

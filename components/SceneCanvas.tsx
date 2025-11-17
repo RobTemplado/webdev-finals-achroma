@@ -284,6 +284,8 @@ function EditorLights() {
   const rayRef = useRef(new THREE.Raycaster());
   const groupRefs = useRef<Record<string, THREE.Group | undefined>>({});
 
+  const draggingRef = useRef(false);
+
   // When selection comes from sidebar, attach gizmo to that group's Object3D
   useEffect(() => {
     if (!selectedId) {
@@ -298,6 +300,7 @@ function EditorLights() {
   useEffect(() => {
     const dom = gl.domElement;
     const onPointerDown = (ev: PointerEvent) => {
+      if (draggingRef.current) return;
       // Only left-clicks
       if (ev.button !== 0) return;
       const rect = dom.getBoundingClientRect();
@@ -338,11 +341,13 @@ function EditorLights() {
     dom.addEventListener("pointerdown", onPointerDown);
     return () => dom.removeEventListener("pointerdown", onPointerDown);
   }, [gl, camera, setSelectedId]);
+  
 
   return (
     <group
       onPointerMissed={(e: ThreeEvent<PointerEvent>) => {
         // deselect only when clicking empty space
+        if (draggingRef.current) return;
         if (e.button === 0) {
           setSelectedId(null);
           setTarget(undefined);
@@ -361,7 +366,9 @@ function EditorLights() {
           groupRefs.current[id] = node ?? undefined;
         }}
       />
-      <EditorTransformControls target={target} selectedId={selectedId} />
+      <EditorTransformControls target={target} selectedId={selectedId} 
+        draggingRef={draggingRef}
+      />
     </group>
   );
 }
@@ -383,9 +390,11 @@ function EditorCanvasTools() {
 function EditorTransformControls({
   target,
   selectedId,
+  draggingRef,
 }: {
   target?: THREE.Object3D;
   selectedId: string | null;
+  draggingRef: React.RefObject<boolean>;
 }) {
   const mode = useEditorStore((s) => s.mode);
   const space = useEditorStore((s) => s.space);
@@ -442,6 +451,12 @@ function EditorTransformControls({
       rotationSnap={snap ? Math.PI / 12 : undefined}
       scaleSnap={snap ? 0.1 : undefined}
       onObjectChange={onObjectChange}
+      onMouseDown={() => {
+        draggingRef.current = true;
+      }}
+      onMouseUp={() => {
+        draggingRef.current = false;
+      }}
     />
   );
 }

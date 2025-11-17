@@ -29,6 +29,15 @@ export const AUDIO_MANIFEST: Record<string, string> = {
 
   // door sprites file inside /public/audio/door/
   door_open_close: "/audio/door/door_open_close.mp3",
+
+  clock_tick_tack: "/audio/clock_tick_tack.mp3",
+
+  light_on_off: "/audio/light_on_off.mp3",
+  wife_crying: "/audio/wife_crying.mp3",
+
+
+  // ambient sounds
+  ambient_1: "/audio/bg/ambient1.mp3",
 };
 
 export default function SoundProvider({
@@ -96,12 +105,18 @@ export default function SoundProvider({
 
   // Auto-resume on first interaction as a safety net
   useEffect(() => {
-    const resume = () => soundRef.current?.resume();
-    window.addEventListener("pointerdown", resume, { once: true });
-    window.addEventListener("keydown", resume, { once: true });
+    const resumeAndPlayQueued = () => {
+      if (!soundRef.current) return;
+      soundRef.current.resume().then(() => {
+        soundRef.current?.playQueuedMusic?.();
+      });
+    };
+
+    window.addEventListener("pointerdown", resumeAndPlayQueued, { once: true });
+    window.addEventListener("keydown", resumeAndPlayQueued, { once: true });
     return () => {
-      window.removeEventListener("pointerdown", resume);
-      window.removeEventListener("keydown", resume);
+      window.removeEventListener("pointerdown", resumeAndPlayQueued);
+      window.removeEventListener("keydown", resumeAndPlayQueued);
     };
   }, []);
 

@@ -196,6 +196,7 @@ export default function RadioNarration() {
     if (startedRef.current) return;
 
     const tryStart = async () => {
+      if (true) return;
       try {
         await resume();
       } catch {}

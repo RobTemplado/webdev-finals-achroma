@@ -17,6 +17,8 @@ interface EditorState {
   snap: boolean;
   showHelpers: boolean;
   effects: EffectInstance[];
+  dragging: boolean;
+  setDragging: (v: boolean) => void;
   setSelectedId: (id: string | null) => void;
   setLights: (l: LightRecord[]) => void;
   updateSelected: (patch: Partial<LightRecord>) => void;
@@ -90,7 +92,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   space: "world",
   snap: false,
   showHelpers: true,
+  dragging: false,
   effects: createDefaultEffects(),
+  setDragging: (v) => set({ dragging: v }),
   setSelectedId: (id) => set({ selectedId: id }),
   setLights: (l) => set({ lights: l }),
   updateSelected: (patch) => {

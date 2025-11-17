@@ -17,6 +17,9 @@ function useBasementDoor(scene: THREE.Group | undefined) {
   const targetYRef = useRef(0);
   const initialYRef = useRef(0);
 
+
+  const doorClosedRef = useRef(false);
+
   // Locate the door in the loaded scene graph
   useEffect(() => {
     if (!scene) return;
@@ -54,6 +57,8 @@ function useBasementDoor(scene: THREE.Group | undefined) {
   function closeDoor() {
     const door = _doorStartRef.current;
     if (!door) return;
+
+    doorClosedRef.current = true;
     targetYRef.current = initialYRef.current;
     openingRef.current = true;
     openedRef.current = false;
@@ -108,6 +113,11 @@ function useBasementDoor(scene: THREE.Group | undefined) {
       console.warn("DoorStart not found or already opened");
       return;
     }
+
+    // do not open again if already closed
+    if (doorClosedRef.current) {
+      return;
+    }
     // Check proximity to camera
     const doorPos = new THREE.Vector3();
     door.getWorldPosition(doorPos);
@@ -152,6 +162,8 @@ function useBasementDoor(scene: THREE.Group | undefined) {
           detail: { durationSec: 1, distance: distToDoorEnd + 0.6 },
         })
       );
+      // allow opening
+      doorClosedRef.current = false;
       setTimeout(() => {
         tryDoorEndTeleport();
       }, 1100);

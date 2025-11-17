@@ -2,6 +2,7 @@ import { useGLTF } from "@react-three/drei";
 import { ThreeElements } from "@react-three/fiber";
 import useBasementDoor from "./useBasementDoor";
 import BasementWalls from "./BasementWalls";
+import Clock from "./Clock";
 
 export default function Basement(props: ThreeElements["group"]) {
   const url = "/optimized/basement.glb";
@@ -15,6 +16,8 @@ export default function Basement(props: ThreeElements["group"]) {
       <primitive object={gltf.scene} />
 
       <BasementWalls scene={gltf.scene} />
+      {/* Animate the wall clock (hands + audio) */}
+      <Clock />
     </group>
   );
 }

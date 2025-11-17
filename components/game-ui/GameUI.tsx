@@ -9,12 +9,15 @@ interface GameUIProps {
 }
 
 export function GameUI({ isTouch }: GameUIProps) {
-  const { started, locked } = useGameState();
+  const { started, locked, loop } = useGameState();
 
   if (!started) return null;
 
   return (
     <>
+      <div className="fixed top-2 left-2 z-50 text-white/70 select-none text-sm pointer-events-none">
+        Loop: {loop}
+      </div>
       <HintOverlay isTouch={isTouch} />
       <Crosshair />
       <RadioSubtitleOverlay />
