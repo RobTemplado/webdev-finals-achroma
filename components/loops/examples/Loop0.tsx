@@ -129,6 +129,13 @@ function Loop0Impl({ loop }: LoopComponentProps) {
       receive: false,
     });
 
+     enableShadowsOnObject(scene, "SmallTable001", {
+      cast: true,
+      receive: false,
+    });
+
+
+
     enableShadowsOnObject(scene, "Root001", {
       cast: true,
       receive: true,
