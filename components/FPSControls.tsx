@@ -1,12 +1,12 @@
 "use client";
 
-import { PointerLockControls } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Matrix4, Quaternion, Vector3 } from "three";
 import { RigidBody, CapsuleCollider } from "@react-three/rapier";
 import type { RapierRigidBody } from "@react-three/rapier";
 import { getMoveAxes, consumeLookDelta, isTouchMode, setMoveAxes } from "./inputStore";
+import { LaggyPointerLockControls, LaggyPointerLockControlsRef } from "./LaggyPointerLockControls";
 
 export default function FPSControls({
   // Movement
@@ -17,6 +17,9 @@ export default function FPSControls({
   // Initial view orientation (radians). If initialLookAt is set, it takes priority.
   initialYaw,
   initialPitch,
+
+  // Camera Lag
+  lagSpeed = 10,
 
   // Bobbing config
   bobEnabled = true,
@@ -72,6 +75,9 @@ export default function FPSControls({
   debugBobHeight?: number;
   debugToggleKey?: string; // e.g., "KeyB"
 
+  // Camera Lag
+  lagSpeed?: number;
+
   // Movement interpolation
   acceleration?: number;
   deceleration?: number;
@@ -98,6 +104,7 @@ export default function FPSControls({
     smoothedLateral: 0,
   });
   const bodyRef = useRef<RapierRigidBody>(null);
+  const lagControlsRef = useRef<LaggyPointerLockControlsRef>(null);
   // Debug overlay data stream
   // Defer import type to avoid client/server mismatch
   type BobDebugData = {
@@ -142,6 +149,7 @@ export default function FPSControls({
         const lim = Math.PI / 2 - 0.01;
         camera.rotation.x = Math.max(-lim, Math.min(lim, initialPitch));
       }
+      lagControlsRef.current?.reset();
     }
     // We only want to run this once on mount, not when camera changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -230,6 +238,7 @@ export default function FPSControls({
         // Update camera yaw while preserving pitch
         camera.rotation.order = "YXZ";
         camera.rotation.y = detail.yaw;
+        lagControlsRef.current?.reset();
       }
       // ensure controls are enabled and input neutral
       setPlcEnabled(true);
@@ -238,6 +247,22 @@ export default function FPSControls({
     window.addEventListener("__teleport_to__", handler as EventListener);
     return () =>
       window.removeEventListener("__teleport_to__", handler as EventListener);
+  }, [camera]);
+
+  // Listen for external look-at requests (to sync with laggy controls)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as
+        | { x: number; y: number; z: number }
+        | undefined;
+      if (detail) {
+        // Use the laggy controls to smoothly look at the target
+        lagControlsRef.current?.lookAt(detail.x, detail.y, detail.z);
+      }
+    };
+    window.addEventListener("__camera_look_at__", handler as EventListener);
+    return () =>
+      window.removeEventListener("__camera_look_at__", handler as EventListener);
   }, [camera]);
 
   // Derived offsets
@@ -457,9 +482,11 @@ export default function FPSControls({
       {/* Pointer lock for mouse look (disabled on touch devices)
           Use built-in PointerLockControls events rather than document listeners. */}
       {!isTouch && (
-        <PointerLockControls
+        <LaggyPointerLockControls
+          ref={lagControlsRef}
           selector="#r3f-canvas"
           enabled={plcEnabled}
+          lagSpeed={lagSpeed}
           onLock={() => onLockChange?.(true)}
           onUnlock={() => onLockChange?.(false)}
         />
@@ -486,7 +513,7 @@ export default function FPSControls({
         ref={bodyRef}
         colliders={false}
         canSleep={false}
-        position={[5 ,0, 0]}
+        position={[3 ,0, -.2]}
         linearDamping={4}
         angularDamping={1}
         enabledRotations={[false, false, false]}

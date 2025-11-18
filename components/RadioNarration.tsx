@@ -186,58 +186,12 @@ export default function RadioNarration() {
     return obj ?? null;
   };
 
-  // Start sequence when assets finished AND audio context is running
   useEffect(() => {
-    const done =
-      !active && (progress >= 100 || (loaded > 0 && loaded >= total));
-    if (!done) return;
-
-    // If already started, skip
-    if (startedRef.current) return;
-
-    const tryStart = async () => {
-      try {
-        await resume();
-      } catch {}
-
-      if (sound.context.state !== "running") {
-        // Wait for first pointer lock or interaction to resume, then start
-        const onPl = async (e: Event) => {
-          const detail = (e as CustomEvent).detail as { locked: boolean };
-          if (detail?.locked) {
-            window.removeEventListener(
-              "__pointerlock_change__",
-              onPl as EventListener
-            );
-            await resume();
-            begin();
-          }
-        };
-        window.addEventListener(
-          "__pointerlock_change__",
-          onPl as EventListener,
-          {
-            once: true,
-          }
-        );
-        // Also fallback to first key/pointer
-        const onInteract = async () => {
-          window.removeEventListener("pointerdown", onInteract);
-          window.removeEventListener("keydown", onInteract);
-          await resume();
-          begin();
-        };
-        window.addEventListener("pointerdown", onInteract, { once: true });
-        window.addEventListener("keydown", onInteract, { once: true });
-        return;
-      }
-
-      begin();
+    window.addEventListener("__radio_start__", begin);
+    return () => {
+      window.removeEventListener("__radio_start__", begin);
     };
-
-    tryStart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, progress, loaded, total]);
+  }, []);
 
   // Core sequence
   const begin = () => {

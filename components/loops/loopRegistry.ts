@@ -7,7 +7,9 @@ export type LoopComponent = FC<LoopComponentProps>;
 
 const registry = new Map<number, LoopComponent>();
 
-export function registerLoop(loop: number, component: LoopComponent) {
+
+export function registerLoop(component: LoopComponent) {
+  const loop = registry.size;
   registry.set(loop, component);
 }
 

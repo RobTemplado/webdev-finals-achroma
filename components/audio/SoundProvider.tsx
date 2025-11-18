@@ -30,9 +30,14 @@ export const AUDIO_MANIFEST: Record<string, string> = {
   // door sprites file inside /public/audio/door/
   door_open_close: "/audio/door/door_open_close.mp3",
 
+  static_light: "/audio/static_light.mp3",
+  door_creak: "/audio/door_creak.mp3",
+  
   clock_tick_tack: "/audio/clock_tick_tack.mp3",
 
   suspense: "/audio/suspense.mp3",
+
+  jumpscare: "/audio/jumpscare.mp3",
 
   light_on_off: "/audio/light_on_off.mp3",
   wife_crying: "/audio/wife_crying.mp3",

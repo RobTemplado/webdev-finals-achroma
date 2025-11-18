@@ -80,6 +80,12 @@ function useBasementDoor(scene: THREE.Group | undefined) {
     openingRef.current = true;
     // play open slice
     sound.playDoorOpen();
+
+
+    window.dispatchEvent(
+      new CustomEvent("__on_door_opened__", { detail: { door: "start" } })
+    )
+
     if (withScriptedMove) {
       const doorPos = new THREE.Vector3();
       door.getWorldPosition(doorPos);

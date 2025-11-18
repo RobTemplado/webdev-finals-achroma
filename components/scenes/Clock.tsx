@@ -2,7 +2,7 @@
 
 import { useThree, useFrame } from "@react-three/fiber";
 import { useSound } from "../audio/useSound";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
 const CLOCK_NAME = "WallClock";
@@ -34,6 +34,8 @@ export default function Clock() {
     const isTickRef = useRef<boolean>(true);
     const jitterRef = useRef<number>(0);
     const lastTickPhaseRef = useRef<"rest" | "forward">("rest");
+
+    const [started, setStarted] = useState(false);
 
     // Positional audio attached to the clock
     const positionalRef = useRef<THREE.PositionalAudio | null>(null);
@@ -85,8 +87,21 @@ export default function Clock() {
         };
     }, [scene, listener]);
 
+    // Wait for external window event before starting clock
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+
+        const handler = () => setStarted(true);
+        window.addEventListener("__clock_start__", handler as EventListener);
+
+        return () => {
+            window.removeEventListener("__clock_start__", handler as EventListener);
+        };
+    }, []);
+
     // Animate hands: clock visually stuck at 2:17, second hand "trying" to move
     useFrame(() => {
+        if (!started) return;
         const now = new Date();
         const seconds = now.getSeconds();
 

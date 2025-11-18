@@ -71,12 +71,16 @@ function Loop2Impl({ loop }: LoopComponentProps) {
       wife.visible = true;
     }
 
-    sound.playSegment("wife_crying", {
-      group: "sfx",
-      start: 0,
-      duration: 8,
-      volume: 0.05,
-    });
+    sound.playLoopingSegment(
+      "wife_crying",
+      {
+        group: "sfx",
+        start: 0,
+        duration: 8,
+        volume: 0.05,
+      },
+      "crying_loop2"
+    );
 
     const frameNames = [
       "hanging_picture_frame_02003",
@@ -176,11 +180,6 @@ function Loop2Impl({ loop }: LoopComponentProps) {
         slide.active = false;
         target.visible = false;
         // Play suspense SFX when Wife finishes moving away
-        sound.playSegment("suspense", {
-          group: "sfx",
-          start: 0.2,
-          volume: 0.7,
-        });
       }
       return;
     }
@@ -188,6 +187,15 @@ function Loop2Impl({ loop }: LoopComponentProps) {
     // No active slide: check for trigger distance
     if (dist <= 6.27 && target.visible) {
       const offset = 1.5; // how far to slide along local X
+
+      sound.stopLoop("crying_loop2");
+
+      sound.playSegment("suspense", {
+        group: "sfx",
+        start: 0.2,
+        volume: 0.7,
+      });
+
       slideStateRef.current = {
         active: true,
         startTime: now,
@@ -200,8 +208,5 @@ function Loop2Impl({ loop }: LoopComponentProps) {
 
   return null;
 }
-
-// Register loop 2 behaviour
-registerLoop(2, Loop2Impl);
 
 export default Loop2Impl;

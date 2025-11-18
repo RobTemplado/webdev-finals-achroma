@@ -7,7 +7,8 @@ import Clock from "./Clock";
 export default function Basement(props: ThreeElements["group"]) {
   const url = "/optimized/basement.glb";
 
-  const gltf = useGLTF(url, true);
+  const gltf = useGLTF(url, true, true);
+
 
   useBasementDoor(gltf.scene);
 

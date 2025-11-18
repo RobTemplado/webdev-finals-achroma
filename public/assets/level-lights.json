@@ -70,6 +70,26 @@
       "intensity": 6.8,
       "distance": 10,
       "decay": 2
+    },
+    {
+      "id": "9bbeb44a-899c-431c-b8cf-f70bf0523f0e",
+      "type": "spot",
+      "position": [
+        0.2639802013899042,
+        2.949670511797445,
+        -0.003280936443780913
+      ],
+      "rotation": [
+        1.4704518213664492e-16,
+        0.3369206515563282,
+        -0.9069810693947279
+      ],
+      "color": "#c7d8ff",
+      "intensity": 0,
+      "angle": 1,
+      "penumbra": 0.34,
+      "distance": 6,
+      "decay": 2
     }
   ],
   "effects": [

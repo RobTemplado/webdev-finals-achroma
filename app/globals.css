@@ -9,11 +9,18 @@ html, body {
   overscroll-behavior: none;
 }
 
+
 body {
-  margin: 0;
-  background: #000; /* fallback if Tailwind classes are not applied */
-  color: #fff;
-  -webkit-overflow-scrolling: auto; /* disable momentum scroll on iOS */
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  /* Prevent scrolling and hide the default cursor for game immersion */
+  overflow: hidden; 
+  /*
+    NOTE: Do not hide cursor globally so the editor UI remains usable.
+    Gameplay components that need to hide the cursor should do so locally
+    (e.g. via a wrapper element with `cursor: none;`).
+  */
+  font-family: 'Courier New', Courier, monospace; /* Fallback for the mono look */
 }
 
 canvas {
@@ -37,4 +44,57 @@ canvas {
   -webkit-user-select: none;
   user-select: none;
   touch-action: none;
+}
+
+
+/* 1. Film Grain Noise Animation 
+   Used for the moving texture in the background */
+@keyframes noise {
+  0% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -5%); }
+  20% { transform: translate(-10%, 5%); }
+  30% { transform: translate(5%, -10%); }
+  40% { transform: translate(-5%, 15%); }
+  50% { transform: translate(-10%, 5%); }
+  60% { transform: translate(15%, 0); }
+  70% { transform: translate(0, 10%); }
+  80% { transform: translate(-15%, 0); }
+  90% { transform: translate(10%, 5%); }
+  100% { transform: translate(5%, 0); }
+}
+
+
+.animate-noise {
+  animation: noise 0.2s steps(3) infinite;
+}
+
+/* 2. Chromatic Aberration (Glitch)
+   Creates the red/blue split effect on text */
+.glitch-text {
+  position: relative;
+  text-shadow: 
+    2px 0 rgba(255, 0, 0, 0.5), 
+    -2px 0 rgba(0, 0, 255, 0.5);
+}
+
+/* 3. Heavy Vignette
+   Creates the tunnel vision effect */
+.bg-radial-vignette {
+  background: radial-gradient(circle, transparent 40%, black 120%);
+}
+
+/* 4. CRT Scanlines
+   Alternating dark lines to simulate an old screen */
+.bg-scanlines {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.25) 50%
+  ),
+  linear-gradient(
+    90deg,
+    rgba(255, 0, 0, 0.06),
+    rgba(0, 255, 0, 0.02),
+    rgba(0, 0, 255, 0.06)
+  );
+  background-size: 100% 2px, 3px 100%;
 }

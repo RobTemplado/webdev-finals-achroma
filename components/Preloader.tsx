@@ -1,262 +1,166 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useProgress } from "@react-three/drei";
+import React, { useState, useEffect } from "react";
 
-type ColorBlindMode = "none" | "protanopia" | "deuteranopia" | "tritanopia";
+const LOADING_PHRASES = [
+  "Loading corridor loop...",
+  "Checking visual cortex...",
+  "Don't look behind you.",
+  "Manifesting fears...",
+  "204863",
+  "Listening for breathing...",
+  "If the screen freezes, it's not a bug.",
+  "Do not trust the radio.",
+];
 
-export default function Preloader() {
-  const { progress, active, loaded, total } = useProgress();
-  const [visible, setVisible] = useState(true);
-  const [fade, setFade] = useState(false);
-  const [mode, setMode] = useState<ColorBlindMode>("none");
-  const [audioReady, setAudioReady] = useState(false);
+export function Preloader() {
+  const [progress, setProgress] = useState(0);
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [isGlitching, setIsGlitching] = useState(false);
 
-  // Ensure audio buffers are decoded before leaving preload screen
+  // Simulate loading with irregular intervals (psychological horror pacing)
   useEffect(() => {
-    const already = (window as any).__audio_ready__ === true;
-    if (already) {
-      setAudioReady(true);
-      return;
-    }
-    const onReady = () => setAudioReady(true);
-    window.addEventListener("__audio_ready__", onReady, { once: true } as any);
-    return () => window.removeEventListener("__audio_ready__", onReady as any);
-  }, []);
+    let timeoutId: NodeJS.Timeout;
 
-  // When loading completes, fade out then unmount
-  useEffect(() => {
-    const done = !active && (progress >= 100 || (loaded > 0 && loaded >= total)) && audioReady;
-    if (done && visible && !fade) {
-      setFade(true);
-      const timer = setTimeout(() => setVisible(false), 400);
-      return () => clearTimeout(timer);
-    }
-  }, [active, progress, loaded, total, visible, fade, audioReady]);
-
-  const pct = useMemo(() => {
-    const base = Math.min(100, Math.max(0, Math.round(progress)));
-    // Keep UI below 100% until audio is ready
-    return audioReady ? base : Math.min(base, 99);
-  }, [progress, audioReady]);
-
-  // Automatically cycle color-vision modes to create a title-screen effect
-  useEffect(() => {
-    if (!visible) return;
-    let timer: number | undefined;
-    const tick = () => {
-      setMode((prev) => {
-        switch (prev) {
-          case "none":
-            return "protanopia";
-          case "protanopia":
-            return "deuteranopia";
-          case "deuteranopia":
-            return "tritanopia";
-          case "tritanopia":
-          default:
-            return "none";
-        }
+    const advanceProgress = () => {
+      setProgress((prev) => {
+        // Fast start
+        if (prev < 30) return prev + Math.random() * 2;
+        // Slow middle
+        if (prev < 70) return prev + Math.random() * 0.5;
+        // Agonizing finish (stalls at 99%)
+        if (prev < 99) return prev + Math.random() * 0.1;
+        return prev;
       });
-      const delay = 1200 + Math.random() * 1800; // 1.2s - 3s
-      timer = window.setTimeout(tick, delay);
-    };
-    // Kick off shortly after mount
-    timer = window.setTimeout(tick, 600);
-    return () => {
-      if (timer) window.clearTimeout(timer);
-    };
-  }, [visible]);
 
-  // Pre-generate random placements for whisper overlays
-  const whispers = useMemo(() => {
-    const phrases = [
-      "they see you",
-      "keep moving",
-      "don’t look back",
-      "it’s behind you",
-      "stay quiet",
-      "shadows whisper",
-      "run",
-      "hide",
-    ];
-    return Array.from({ length: 7 }).map((_, i) => ({
-      text: phrases[i % phrases.length],
-      top: 10 + Math.random() * 70, // percentage
-      left: 5 + Math.random() * 90, // percentage
-      dur: 2500 + Math.random() * 2500, // ms
-      delay: Math.random() * 2200, // ms
-      scale: 0.9 + Math.random() * 0.3,
-      rot: -2 + Math.random() * 4,
-    }));
+      // Randomize tick speed to feel "broken" or "struggling"
+      const nextTick = Math.random() * 200 + (progress > 80 ? 300 : 50);
+      timeoutId = setTimeout(advanceProgress, nextTick);
+    };
+
+    advanceProgress();
+    return () => clearTimeout(timeoutId);
   }, []);
-  if (!visible) return null;
+
+  // Cycle phrases based on progress
+  useEffect(() => {
+    if (progress > 20 && progress < 40) setPhraseIndex(1);
+    else if (progress > 40 && progress < 60) setPhraseIndex(2);
+    else if (progress > 60 && progress < 80) setPhraseIndex(3);
+    else if (progress > 80 && progress < 90) setPhraseIndex(4);
+    else if (progress > 90) setPhraseIndex(Math.floor(Math.random() * (LOADING_PHRASES.length - 5) + 5));
+  }, [progress]);
+
+  // Random Glitch Effect Trigger
+  useEffect(() => {
+    const triggerGlitch = () => {
+      setIsGlitching(true);
+      setTimeout(() => setIsGlitching(false), Math.random() * 200 + 50);
+      setTimeout(triggerGlitch, Math.random() * 5000 + 2000);
+    };
+    triggerGlitch();
+  }, []);
 
   return (
-    <div
-      className={`fixed inset-0 z-50 grid place-items-center overflow-hidden ${
-        fade ? "opacity-0 transition-opacity duration-300" : "opacity-100"
-      }`}
-      aria-live="polite"
-    >
-      {/* Background: deep black base */}
-      <div className="absolute inset-0 bg-black" />
-
-      {/* Vignette for a tunnel look */}
-      <div className="pointer-events-none absolute inset-0" style={{
-        background:
-          "radial-gradient(ellipse at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.6) 85%, rgba(0,0,0,0.9) 100%)",
-      }} />
-
-      {/* Film grain / noise (CSS-only, throttled for mobile) */}
-      <div className="pointer-events-none absolute inset-0 mix-blend-soft-light opacity-40 motion-safe:animate-[noise_1200ms_steps(8)_infinite]" style={{
-        backgroundImage:
-          "url('data:image/svg+xml;utf8,<svg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'128\\' height=\\'128\\'><filter id=\\'n\\'><feTurbulence type=\\'fractalNoise\\' baseFrequency=\\'0.9\\' numOctaves=\\'1\\' stitchTiles=\\'stitch\\'/></filter><rect width=\\'100%\\' height=\\'100%\\' filter=\\'url(%23n)\\'/></svg>')",
-        backgroundSize: "128px 128px",
-      }} />
-
-      {/* Subtle red pulse wash */}
-      <div className="pointer-events-none absolute inset-0 opacity-20 motion-safe:animate-[pulseWash_2.8s_ease-in-out_infinite]" style={{
-        background:
-          "radial-gradient(1200px 600px at 50% 60%, rgba(220,20,60,0.3), transparent 70%)",
-      }} />
-
-      {/* Content (wrapped in color-vision filter) */}
-      <div
-        className="relative z-10 mx-auto w-[min(520px,88vw)] select-none p-6 text-center"
-        style={{ filter: mode === "none" ? undefined : `url(#cb-${mode})` }}
-      >
-        {/* Title with flicker/glitch effect */}
-        <div className="relative mb-5">
-          <h1 className="text-[9vw] leading-none sm:text-5xl font-semibold tracking-[0.25em] text-white/90 motion-safe:animate-[flicker_3.2s_infinite]">
-            ACHROMA
-          </h1>
-          {/* red/blue ghost layers for glitch */}
-          <div className="pointer-events-none absolute inset-0 -z-10 blur-[1px] mix-blend-screen opacity-25 motion-safe:animate-[glitchShift_2.6s_infinite]" style={{ color: "#ff1a1a" }}>
-            <h1 className="text-[9vw] leading-none sm:text-5xl font-semibold tracking-[0.25em]">ACHROMA</h1>
-          </div>
-          <div className="pointer-events-none absolute inset-0 -z-10 blur-[1px] mix-blend-screen opacity-20 motion-safe:animate-[glitchShift_2.2s_-0.6s_infinite]" style={{ color: "#1ac6ff" }}>
-            <h1 className="text-[9vw] leading-none sm:text-5xl font-semibold tracking-[0.25em]">ACHROMA</h1>
-          </div>
-        </div>
-
-        {/* Progress bar - chunky, mobile-friendly */}
-        <div className="mx-auto w-full max-w-[520px]">
-          <div className="relative h-3 rounded-full bg-white/5 shadow-[0_0_0_1px_rgba(255,255,255,0.06)_inset]">
-            <div
-              className="relative h-full rounded-full bg-gradient-to-r from-[#2a0b0b] via-[#3a0e0e] to-[#4a1111] shadow-[0_0_8px_1px_rgba(180,0,0,0.18)] opacity-90 motion-safe:animate-[flow_2.2s_linear_infinite]"
-              style={{ width: `${pct}%` }}
-            />
-            {/* subtle top highlight */}
-            <div className="pointer-events-none absolute inset-x-0 top-0 h-[1px] rounded-full bg-white/15 opacity-25" />
-            {/* faint inner edge to blend with vignette */}
-            <div className="pointer-events-none absolute inset-0 rounded-full ring-1 ring-black/30" />
-          </div>
-          <div className="mt-3 text-sm sm:text-xs tracking-widest text-white/70">
-            {pct}%
-          </div>
-        </div>
-
-        {/* Mobile hint */}
-        <div className="mt-6 text-xs sm:text-[11px] text-white/50">
-          Best with headphones · Dark room recommended
-        </div>
-      </div>
-
-      {/* Whisper overlays (hallucinatory text) */}
-      {whispers.map((w, i) => (
-        <div
-          key={i}
-          className="pointer-events-none absolute z-0 text-[10px] sm:text-xs font-medium tracking-[0.35em] text-white/20 motion-safe:animate-[whisper_3s_ease-in-out_infinite]"
-          style={{
-            top: `${w.top}%`,
-            left: `${w.left}%`,
-            transform: `translate(-50%, -50%) scale(${w.scale}) rotate(${w.rot}deg)`,
-            animationDuration: `${w.dur}ms`,
-            animationDelay: `${w.delay}ms`,
-            whiteSpace: "nowrap",
-            filter: "blur(0.2px)",
-          }}
-        >
-          {w.text}
-        </div>
-      ))}
-
-      {/* Hidden SVG filters for color-vision simulation */}
-      <svg className="absolute -z-10 h-0 w-0" aria-hidden>
-        <defs>
-          {/* Protanopia */}
-          <filter id="cb-protanopia">
-            <feColorMatrix type="matrix" values="0.56667 0.43333 0 0 0  0.55833 0.44167 0 0 0  0 0.24167 0.75833 0 0  0 0 0 1 0" />
-          </filter>
-          {/* Deuteranopia */}
-          <filter id="cb-deuteranopia">
-            <feColorMatrix type="matrix" values="0.625 0.375 0 0 0  0.70 0.30 0 0 0  0 0.30 0.70 0 0  0 0 0 1 0" />
-          </filter>
-          {/* Tritanopia */}
-          <filter id="cb-tritanopia">
-            <feColorMatrix type="matrix" values="0.95 0.05 0 0 0  0 0.43333 0.56667 0 0  0 0.475 0.525 0 0  0 0 0 1 0" />
-          </filter>
-        </defs>
-      </svg>
-
-      {/* Component-scoped styles */}
-      <style>{`
-        @keyframes flicker {
-          0%, 19%, 21%, 23%, 80%, 81%, 100% { opacity: 0.95; }
-          20% { opacity: 0.55; }
-          22% { opacity: 0.75; }
-          82% { opacity: 0.7; }
-        }
-        @keyframes glitchShift {
-          0%   { transform: translate(0, 0); }
-          20%  { transform: translate(0.6px, -0.8px); }
-          40%  { transform: translate(-0.8px, 0.5px); }
-          60%  { transform: translate(0.4px, 0.6px); }
-          80%  { transform: translate(-0.6px, -0.4px); }
-          100% { transform: translate(0, 0); }
-        }
+    <div className="relative h-screen w-full overflow-hidden bg-black font-mono text-gray-300 selection:bg-red-900 selection:text-white">
+      {/* --- CSS Effects for Noise & Scanlines --- */}
+      <style jsx global>{`
         @keyframes noise {
-          0%   { transform: translate(0, 0); }
-          10%  { transform: translate(-3%, -2%); }
-          20%  { transform: translate(2%, -3%); }
-          30%  { transform: translate(-1%, 2%); }
-          40%  { transform: translate(3%, 1%); }
-          50%  { transform: translate(-2%, -1%); }
-          60%  { transform: translate(1%, 3%); }
-          70%  { transform: translate(-3%, 2%); }
-          80%  { transform: translate(2%, -2%); }
-          90%  { transform: translate(-1%, 1%); }
-          100% { transform: translate(0, 0); }
+          0% { transform: translate(0, 0); }
+          10% { transform: translate(-5%, -5%); }
+          20% { transform: translate(-10%, 5%); }
+          30% { transform: translate(5%, -10%); }
+          40% { transform: translate(-5%, 15%); }
+          50% { transform: translate(-10%, 5%); }
+          60% { transform: translate(15%, 0); }
+          70% { transform: translate(0, 10%); }
+          80% { transform: translate(-15%, 0); }
+          90% { transform: translate(10%, 5%); }
+          100% { transform: translate(5%, 0); }
         }
-        @keyframes flow {
-          0%   { filter: brightness(1) saturate(1); }
-          50%  { filter: brightness(1.15) saturate(1.2); }
-          100% { filter: brightness(1) saturate(1); }
+        .animate-noise {
+          animation: noise 0.2s steps(3) infinite;
         }
-        @keyframes pulseWash {
-          0%, 100% { opacity: 0.15; }
-          50%      { opacity: 0.35; }
-        }
-        @keyframes whisper {
-          0% { opacity: 0; transform: translate(-50%, -50%) scale(1) }
-          10% { opacity: 0.28 }
-          50% { opacity: 0.14; transform: translate(calc(-50% + 2px), calc(-50% - 1px)) scale(1.01) }
-          90% { opacity: 0.28 }
-          100% { opacity: 0 }
-        }
-        /* Reduced motion: tone down the heavy animations */
-        @media (prefers-reduced-motion: reduce) {
-          .motion-safe\\:animate-[noise_1200ms_steps(8)_infinite],
-          .motion-safe\\:animate-[glitchShift_2.6s_infinite],
-          .motion-safe\\:animate-[glitchShift_2.2s_-0.6s_infinite],
-          .motion-safe\\:animate-[flow_2.2s_linear_infinite],
-          .motion-safe\\:animate-[pulseWash_2.8s_ease-in-out_infinite],
-          .motion-safe\\:animate-[flicker_3.2s_infinite] {
-            animation: none !important;
-          }
+        .glitch-text {
+          text-shadow: 2px 0 rgba(255,0,0,0.5), -2px 0 rgba(0,0,255,0.5);
         }
       `}</style>
+
+      {/* --- Background Layers --- */}
+      
+      {/* 1. Static Noise Layer (The Grain) */}
+      <div className="pointer-events-none absolute inset-0 z-0 opacity-[0.15] mix-blend-overlay">
+        <div 
+            className="h-[200%] w-[200%] animate-noise bg-repeat"
+            style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E")`
+            }}
+        />
+      </div>
+
+      {/* 2. CRT Scanlines */}
+      <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] bg-repeat" />
+
+      {/* 3. Heavy Vignette (The Darkness) */}
+      <div className="pointer-events-none absolute inset-0 z-20 bg-radial-gradient-vignette" 
+           style={{ background: 'radial-gradient(circle, transparent 40%, black 120%)' }} 
+      />
+
+      {/* --- Main Content --- */}
+      <div className="relative z-30 flex h-full flex-col items-center justify-center p-4">
+        
+        {/* Container */}
+        <div className={`relative flex max-w-md flex-col items-center transition-opacity duration-100 ${isGlitching ? 'opacity-80 translate-x-1' : 'opacity-100'}`}>
+          
+          {/* Title Section */}
+          <div className="relative mb-12">
+            <h1 className={`text-5xl md:text-7xl font-bold tracking-[0.5em] uppercase text-white mix-blend-difference ${isGlitching ? 'glitch-text blur-[1px]' : ''}`}>
+              Achroma
+            </h1>
+            
+            {/* Ghost Title (for that blurry double-vision look) */}
+            <span className="absolute inset-0 -z-10 animate-pulse text-5xl md:text-7xl font-bold tracking-[0.5em] uppercase text-red-600 opacity-40 blur-sm">
+              Achroma
+            </span>
+          </div>
+
+          {/* Loading Bar Container */}
+          <div className="relative mb-4 h-[1px] w-64 bg-gray-800">
+            {/* The Bar */}
+            <div 
+              className="absolute left-0 top-0 h-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)] transition-all duration-300 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+            
+            {/* Red Blip at the end of the bar */}
+            <div 
+                className="absolute top-1/2 -translate-y-1/2 h-2 w-2 rounded-full bg-red-600 blur-[2px]"
+                style={{ left: `${progress}%`, opacity: progress > 0 ? 1 : 0 }}
+            />
+          </div>
+
+          {/* Dynamic Status Text */}
+          <div className="flex h-16 flex-col items-center justify-start space-y-2 text-center">
+            <p className="text-xs font-light tracking-[0.3em] text-gray-400 uppercase">
+              {LOADING_PHRASES[phraseIndex]}
+            </p>
+            
+            {/* Percentage - Occasional Glitch */}
+            <p className="text-[10px] text-red-900/80 font-bold tracking-widest">
+               {isGlitching ? 'ERR' : `${Math.floor(progress)}%`}
+            </p>
+          </div>
+
+        </div>
+
+        {/* Bottom Warning - P.T. style legal/warning text */}
+        <div className="absolute bottom-8 text-center opacity-30">
+            <p className="text-[9px] uppercase tracking-widest max-w-xs leading-relaxed">
+                Automatic data restoration in progress. <br/>
+                Do not turn off the console.
+            </p>
+        </div>
+      </div>
     </div>
   );
 }

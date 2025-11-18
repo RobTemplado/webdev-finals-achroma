@@ -59,6 +59,9 @@ export class SoundManager {
   private currentMusicName?: string;
   private queuedMusic?: { name: string; opts: MusicOptions };
 
+  // active loops
+  private activeLoops: Map<string, () => void> = new Map();
+
   // simple rate-limits
   private lastFootstepAt = 0;
 
@@ -239,6 +242,100 @@ export class SoundManager {
         gain.disconnect();
       } catch {}
     }, totalMs);
+  }
+
+  /**
+   * Play a segment (slice) of an AudioBuffer in a loop.
+   * Returns a function to stop the loop (with a fade out).
+   * @param loopId Optional ID to register this loop for later stopping via stopLoop(id)
+   */
+  playLoopingSegment(name: string, segment: SegmentOptions, loopId?: string): () => void {
+    if (this.context.state !== "running") {
+      this.context.resume().catch(() => {});
+    }
+    const buf = this.getBuffer(name);
+    if (!buf) return () => {};
+
+    // If a loop with this ID already exists, stop it first
+    if (loopId && this.activeLoops.has(loopId)) {
+      this.stopLoop(loopId);
+    }
+
+    const { start, duration, group = "sfx", volume = 1, playbackRate = 1, detune } = segment;
+    if (start >= buf.duration) return () => {};
+
+    const ctx = this.context;
+    const source = ctx.createBufferSource();
+    source.buffer = buf;
+    source.loop = true;
+    source.loopStart = start;
+    if (duration !== undefined) {
+      source.loopEnd = Math.min(buf.duration, start + duration);
+    } else {
+      source.loopEnd = buf.duration;
+    }
+
+    source.playbackRate.value = playbackRate;
+    if (typeof detune === "number" && (source as any).detune) {
+      (source as any).detune.value = detune;
+    }
+
+    const gain = ctx.createGain();
+    const vol = Math.max(0, Math.min(1, volume));
+    const now = ctx.currentTime;
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(vol, now + 0.1);
+
+    const groupNode = this.getGroupNode(group);
+    source.connect(gain);
+    gain.connect(groupNode);
+
+    try {
+      // Start at the beginning of the segment
+      source.start(0, start);
+    } catch {
+      return () => {};
+    }
+
+    // Return a stop function
+    const stopFn = () => {
+      // Remove from map if it was registered
+      if (loopId && this.activeLoops.get(loopId) === stopFn) {
+        this.activeLoops.delete(loopId);
+      }
+
+      const stopTime = ctx.currentTime;
+      try {
+        gain.gain.cancelScheduledValues(stopTime);
+        gain.gain.setValueAtTime(gain.gain.value, stopTime);
+        gain.gain.linearRampToValueAtTime(0, stopTime + 0.2);
+      } catch {}
+
+      setTimeout(() => {
+        try {
+          source.stop();
+        } catch {}
+        try {
+          source.disconnect();
+          gain.disconnect();
+        } catch {}
+      }, 250);
+    };
+
+    if (loopId) {
+      this.activeLoops.set(loopId, stopFn);
+    }
+
+    return stopFn;
+  }
+
+  stopLoop(loopId: string) {
+    const stopFn = this.activeLoops.get(loopId);
+    if (stopFn) {
+      stopFn();
+      // The stopFn itself handles removal from the map, but we can ensure it here too
+      this.activeLoops.delete(loopId);
+    }
   }
 
   // Convenience helpers for door open/close using a single sprite file

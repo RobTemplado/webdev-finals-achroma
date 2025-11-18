@@ -242,9 +242,9 @@ export default function LevelEditor() {
 
 					{selected.type !== "point" && selected.type !== "ambient" && (
 						<div className="grid grid-cols-3 gap-2 mt-2">
-							<Labeled label="Rot X"><Num value={(selected.rotation ?? [0, 0, 0])[0]} onChange={(v) => setRot(0, v)} step={0.02} /></Labeled>
-							<Labeled label="Rot Y"><Num value={(selected.rotation ?? [0, 0, 0])[1]} onChange={(v) => setRot(1, v)} step={0.02} /></Labeled>
-							<Labeled label="Rot Z"><Num value={(selected.rotation ?? [0, 0, 0])[2]} onChange={(v) => setRot(2, v)} step={0.02} /></Labeled>
+							<Labeled label="Rot X (deg)"><Num value={((selected.rotation ?? [0, 0, 0])[0] * 180) / Math.PI} onChange={(v) => setRot(0, (v * Math.PI) / 180)} step={1} /></Labeled>
+							<Labeled label="Rot Y (deg)"><Num value={((selected.rotation ?? [0, 0, 0])[1] * 180) / Math.PI} onChange={(v) => setRot(1, (v * Math.PI) / 180)} step={1} /></Labeled>
+							<Labeled label="Rot Z (deg)"><Num value={((selected.rotation ?? [0, 0, 0])[2] * 180) / Math.PI} onChange={(v) => setRot(2, (v * Math.PI) / 180)} step={1} /></Labeled>
 						</div>
 					)}
 

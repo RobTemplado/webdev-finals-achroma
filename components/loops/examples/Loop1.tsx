@@ -206,7 +206,4 @@ function Loop1Impl({ loop }: LoopComponentProps) {
   return <ApplyLoop1Lighting />;
 }
 
-// Register loop 1
-registerLoop(1, Loop1Impl);
-
 export default Loop1Impl;

@@ -1,22 +1,21 @@
 "use client";
 
-import Preloader from "@/components/Preloader";
 import useIsTouch from "@/hooks/useIsTouch";
 import useViewportVH from "@/hooks/useViewportVH";
 import SceneCanvas from "@/components/SceneCanvas";
 import { useSearchParams } from "next/navigation";
-import TitleScreen from "@/components/TitleScreen";
 import { GameUI } from "@/components/game-ui/GameUI";
-// Import loop examples to ensure registration happens on app mount
-import "@/components/loops/examples/Loop0";
-import "@/components/loops/examples/Loop1";
+import { Preloader } from "@/components/Preloader";
 import { MobileUI } from "@/components/mobile/MobileUI";
 import { useGameState } from "@/store/gameState";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
+import TitleScreen from "@/components/TitleScreen";
+
+import "@/components/loops/examples/index"
 
 export default function Page() {
   return (
-    <Suspense>
+    <Suspense fallback={<Preloader />}>
       <Home />
     </Suspense>
   );
@@ -27,8 +26,9 @@ function Home() {
   const { flashOn, started, setStarted, setLocked, setLoop } = useGameState();
   const params = useSearchParams();
   const editor = (params.get("editor") ?? "") !== ""; // any value enables
+  const [showTitle, setShowTitle] = useState(false);
+  const [sceneReady, setSceneReady] = useState(false);
 
-  // Debug: allow overriding loop via ?debugLoop=NUMBER (one-time effect)
   useEffect(() => {
     const debugLoopParam = params.get("debugLoop");
     if (debugLoopParam == null) return;
@@ -44,23 +44,29 @@ function Home() {
       className="fixed inset-0 w-full select-none"
       style={{ height: "calc(var(--vh, 1vh) * 100)" }}
     >
+      {/* 3D scene */}
       <SceneCanvas
         isTouch={isTouch}
         flashOn={flashOn}
         started={started}
+        onFirstFrameReady={() => {
+          setSceneReady(true);
+          setShowTitle(true);
+        }}
         onPointerLockChange={(v) => {
           console.log("[page.tsx] pointer lock change:", v);
           setLocked(v);
         }}
         editor={editor}
       />
-      {!editor && !started && <Preloader />}
-      {!editor && (
-        <TitleScreen started={started} onStart={() => setStarted(true)} />
+
+      {/* Title screen overlay is shown only after scene is ready */}
+      {!editor && showTitle && (
+        <TitleScreen onStart={() => { setStarted(true); setShowTitle(false); }} />
       )}
 
-      {!editor && <GameUI isTouch={isTouch} />}
-      {!editor && isTouch && <MobileUI />}
+      {!editor && !showTitle && sceneReady && <GameUI isTouch={isTouch} />} 
+      {!editor && !showTitle && sceneReady && isTouch && <MobileUI />}
     </div>
   );
 }

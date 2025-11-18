@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { LoopComponentProps } from "../loopRegistry";
 import { registerLoop } from "../loopRegistry";
 import { TriggerBox, ProximityTrigger } from "../Trigger";
 import { useSound } from "@/components/audio/useSound";
-import { useThree } from "@react-three/fiber";
+import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
 function enableShadowsOnObject(
@@ -53,8 +53,146 @@ function setCastShadowOnObjects(scene: THREE.Scene, names: string[]) {
 }
 
 function Loop0Impl({ loop }: LoopComponentProps) {
-  const { scene } = useThree();
+  const { scene, camera, clock } = useThree();
   const { sound } = useSound();
+
+  const lightAnimRef = useRef<{
+    active: boolean;
+    startTime: number;
+    delay: number;
+    light: THREE.PointLight | null;
+    targetIntensity: number;
+    duration: number;
+    initialized: boolean;
+  }>({
+    active: false,
+    startTime: 0,
+    delay: 201,
+    light: null,
+    targetIntensity: 2,
+    duration: 1,
+    initialized: false,
+  });
+
+  useFrame((state) => {
+    // Try to find and initialize the light if not done yet
+    if (!lightAnimRef.current.initialized) {
+      const group = scene.getObjectByName("LevelLights");
+      if (group) {
+        group.children.forEach((child) => {
+          // Check for ID match (assuming name format "Light_<uuid>")
+          if (child.name.includes("9bbeb44a-899c-431c-b8cf-f70bf0523f0e")) {
+            const light = child as THREE.PointLight;
+            light.intensity = 0; // Start dim
+            lightAnimRef.current.light = light;
+            lightAnimRef.current.startTime = state.clock.elapsedTime;
+            // configure delay before fade-in starts (in seconds)
+            lightAnimRef.current.delay = 0.5;
+            lightAnimRef.current.active = true;
+            lightAnimRef.current.initialized = true;
+            console.log("Loop0: Light found and animation started");
+          }
+        });
+      }
+    }
+
+    // Animation logic
+    if (lightAnimRef.current.active && lightAnimRef.current.light) {
+      const { startTime, delay, duration, light, targetIntensity } =
+        lightAnimRef.current;
+      const now = state.clock.elapsedTime;
+      const elapsed = now - startTime;
+
+      // wait for delay before starting the fade-in
+      if (elapsed < delay) return;
+
+      const animTime = elapsed - delay;
+      const t = Math.min(animTime / duration, 1);
+
+      // Ease in out
+      const eased = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+      light.traverse((child) => {
+        if ((child as any).isLight) {
+          const light = child as THREE.PointLight;
+          light.intensity = targetIntensity * eased;
+        }
+      });
+
+      if (t >= 1) {
+        lightAnimRef.current.active = false;
+      }
+    }
+  });
+
+  function playOpeningSequence() {
+    const door = scene.getObjectByName("DoorStart")!;
+    const position = new THREE.Vector3();
+    door.getWorldPosition(position);
+    position.add(new THREE.Vector3(0, 0.2, -0.5));
+
+    // Dispatch event to force camera look-at via FPSControls
+    window.dispatchEvent(
+      new CustomEvent("__camera_look_at__", {
+        detail: { x: position.x, y: position.y, z: position.z },
+      })
+    );
+
+    sound.playLoopingSegment(
+      "static_light",
+      {
+        start: 0,
+        volume: 0.05,
+      },
+      "static_light"
+    );
+
+    sound.playSegment("door_creak", {
+      start: 0,
+      volume: 0.3,
+    });
+
+    // rotate door slightly (1-5 degrees)
+    const initialRotation = door.rotation.y;
+    const targetRotation = initialRotation + THREE.MathUtils.degToRad(-13);
+
+    const duration = 3300;
+    const startTime = performance.now();
+
+    function animateDoor(time: number) {
+      const elapsed = time - startTime;
+      const t = Math.min(elapsed / duration, 1);
+
+      // ease-out
+      const eased = 1 - Math.pow(1 - t, 3);
+      door.rotation.y =
+        initialRotation + (targetRotation - initialRotation) * eased;
+
+      if (t < 1) {
+        requestAnimationFrame(animateDoor);
+      }
+    }
+    requestAnimationFrame(animateDoor);
+  }
+
+  useEffect(() => {
+    setTimeout(() => {
+      playOpeningSequence();
+    }, 100);
+
+    const onDoorOpened = () => {
+      // start radio
+      window.dispatchEvent(
+        new CustomEvent("__radio_start__", { detail: { radio: "main" } })
+      );
+    };
+
+    window.addEventListener("__on_door_opened__", onDoorOpened);
+    return () => {
+      sound.stopLoop("static_loop");
+      window.removeEventListener("__on_door_opened__", onDoorOpened);
+    };
+  }, []);
 
   useEffect(() => {
     sound.playMusic("ambient_1", { loop: true, fade: 1, volume: 0.15 });
@@ -129,12 +267,10 @@ function Loop0Impl({ loop }: LoopComponentProps) {
       receive: false,
     });
 
-     enableShadowsOnObject(scene, "SmallTable001", {
+    enableShadowsOnObject(scene, "SmallTable001", {
       cast: true,
       receive: false,
     });
-
-
 
     enableShadowsOnObject(scene, "Root001", {
       cast: true,
@@ -174,13 +310,11 @@ function Loop0Impl({ loop }: LoopComponentProps) {
       "Beer_Bottle_330ml007",
       "Beer_Bottle_330ml009",
     ]);
-~
-
-    setCastShadowOnObjects(scene, [
+    ~setCastShadowOnObjects(scene, [
       "hanging_picture_frame_02001",
       "~001",
-      "Hanging_Industrial_Lamp"
-    ])
+      "Hanging_Industrial_Lamp",
+    ]);
 
     enableShadowsOnObject(scene, "TableLamp", {
       cast: true,
@@ -261,8 +395,5 @@ function Loop0Impl({ loop }: LoopComponentProps) {
 
   return <></>;
 }
-
-// Register example loop 0 at import-time
-registerLoop(0, Loop0Impl);
 
 export default Loop0Impl;

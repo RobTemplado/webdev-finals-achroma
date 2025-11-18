@@ -41,6 +41,7 @@ export default function SceneCanvas({
   started = false,
   onPointerLockChange,
   editor = false,
+  onFirstFrameReady,
 }: {
   isTouch: boolean;
   flashOn: boolean;
@@ -48,6 +49,8 @@ export default function SceneCanvas({
   onPointerLockChange?: (locked: boolean) => void;
   /** When true, enables level editor mode (OrbitControls + transform gizmos). */
   editor?: boolean;
+  /** Called once the main play canvas has rendered a few frames. */
+  onFirstFrameReady?: () => void;
 }) {
   const dev = process.env.NODE_ENV !== "production";
   const [lowPerf, setLowPerf] = useState(false);
@@ -84,53 +87,50 @@ export default function SceneCanvas({
           >
             <color attach="background" args={["#000"]} />
             <fog attach="fog" args={["#0a0a0a", 15, 35]} />
+            <PerformanceMonitor
+              onDecline={() => setLowPerf(true)}
+              onIncline={() => setLowPerf(false)}
+            />
+            <SoundProvider>
+              <SoundBridge onPointerLockChange={onPointerLockChange} />
+              {/* No radio narration while editing */}
+              <Physics gravity={[0, -9.81, 0]} debug={dev && !isTouch}>
+                {/* Always load the Basement scene in editor */}
+                <Basement position={[0, 1, 0]} />
 
-            <Suspense fallback={null}>
-              <PerformanceMonitor
-                onDecline={() => setLowPerf(true)}
-                onIncline={() => setLowPerf(false)}
-              />
-              <SoundProvider>
-                <SoundBridge onPointerLockChange={onPointerLockChange} />
-                {/* No radio narration while editing */}
-                <Physics gravity={[0, -9.81, 0]} debug={dev && !isTouch}>
-                  {/* Always load the Basement scene in editor */}
-                  <Basement position={[0, 1, 0]} />
+                {/* Editable lights in editor mode, sourced from store */}
+                <EditorLights />
 
-                  {/* Editable lights in editor mode, sourced from store */}
-                  <EditorLights />
+                {/* Ground */}
+                <RigidBody type="fixed" colliders={false}>
+                  <CuboidCollider
+                    args={[25, 0.1, 25]}
+                    position={[0, -0.5, 0]}
+                  />
+                </RigidBody>
+                {!lowPerf && (
+                  <ContactShadows
+                    position={[0, -0.49, 0]}
+                    opacity={0.35}
+                    scale={30}
+                    blur={3}
+                    far={15}
+                  />
+                )}
+                {/* No FPS controls in editor (use OrbitControls) */}
 
-                  {/* Ground */}
-                  <RigidBody type="fixed" colliders={false}>
-                    <CuboidCollider
-                      args={[25, 0.1, 25]}
-                      position={[0, -0.5, 0]}
-                    />
-                  </RigidBody>
-                  {!lowPerf && (
-                    <ContactShadows
-                      position={[0, -0.49, 0]}
-                      opacity={0.35}
-                      scale={30}
-                      blur={3}
-                      far={15}
-                    />
-                  )}
-                  {/* No FPS controls in editor (use OrbitControls) */}
+                {/* Optional: leave flashlight off while editing */}
+              </Physics>
+            </SoundProvider>
 
-                  {/* Optional: leave flashlight off while editing */}
-                </Physics>
-              </SoundProvider>
+            <Effects isTouch={isTouch} />
+            {(isTouch || lowPerf) && <AdaptiveDpr pixelated />}
+            {dev && <Stats className="stats-top-right" />}
 
-              <Effects isTouch={isTouch} />
-              {(isTouch || lowPerf) && <AdaptiveDpr pixelated />}
-              {dev && <Stats className="stats-top-right" />}
+            {/* Editor camera/transform tools inside Canvas */}
+            <EditorCanvasTools />
 
-              {/* Editor camera/transform tools inside Canvas */}
-              <EditorCanvasTools />
-
-              <Preload all />
-            </Suspense>
+            <Preload all />
           </Canvas>
         </div>
         {/* Docked right sidebar */}
@@ -139,7 +139,6 @@ export default function SceneCanvas({
     );
   }
 
-  // Default game view (no editor)
   return (
     <>
       <Canvas
@@ -161,74 +160,89 @@ export default function SceneCanvas({
         <color attach="background" args={["#000"]} />
         <fog attach="fog" args={["#0a0a0a", 15, 35]} />
 
-        <Suspense fallback={null}>
-          <PerformanceMonitor
-            onDecline={() => setLowPerf(true)}
-            onIncline={() => setLowPerf(false)}
-          />
-          <SoundProvider>
-            <SoundBridge onPointerLockChange={onPointerLockChange} />{" "}
-            {started && <RadioNarration />}
-            <Physics gravity={[0, -9.81, 0]} debug={false}>
-              <Basement position={[0, 1, 0]} />
+        <PerformanceMonitor
+          onDecline={() => setLowPerf(true)}
+          onIncline={() => setLowPerf(false)}
+        />
+        <SoundProvider>
+          <SoundBridge onPointerLockChange={onPointerLockChange} />{" "}
+          {started && <RadioNarration />}
+          <Physics gravity={[0, -9.81, 0]} debug={false}>
+            <Basement position={[0, 1, 0]} />
 
-              {/* Level lights rendered from JSON file (editor renders its own) */}
-              {!editor && <LightsFromFile />}
+            {/* Level lights rendered from JSON file (editor renders its own) */}
+            {!editor && <LightsFromFile />}
 
-              {/* Ground */}
-              <RigidBody type="fixed" colliders={false}>
-                <CuboidCollider args={[25, 0.1, 25]} position={[0, -0.5, 0]} />
-              </RigidBody>
-              {!lowPerf && (
-                <ContactShadows
-                  position={[0, -0.49, 0]}
-                  opacity={0.35}
-                  scale={30}
-                  blur={3}
-                  far={15}
-                />
-              )}
+            {/* Ground */}
+            <RigidBody type="fixed" colliders={false}>
+              <CuboidCollider args={[25, 0.1, 25]} position={[0, -0.5, 0]} />
+            </RigidBody>
+            {!lowPerf && (
+              <ContactShadows
+                position={[0, -0.49, 0]}
+                opacity={0.35}
+                scale={30}
+                blur={3}
+                far={15}
+              />
+            )}
 
-              {!editor && (
-                <FPSControls
-                  speed={1.0}
-                  eyeHeight={3.75}
-                  capsuleHeight={1.85}
-                  capsuleRadius={0.25}
-                  initialYaw={INITIAL_YAW}
-                  onLockChange={(locked) => {
-                    // Also resume audio on lock
-                    window.dispatchEvent(
-                      new CustomEvent("__pointerlock_change__", {
-                        detail: { locked },
-                      })
-                    );
-                  }}
-                  onFootstep={(foot) => {
-                    // Dispatch footstep event; SoundBridge will handle to keep hook usage inside provider
-                    window.dispatchEvent(
-                      new CustomEvent("__footstep__", { detail: { foot } })
-                    );
-                  }}
-                />
-              )}
+            {!editor && (
+              <FPSControls
+                speed={1.0}
+                eyeHeight={3.65}
+                capsuleHeight={1.85}
+                capsuleRadius={0.25}
+                initialYaw={INITIAL_YAW}
+                onLockChange={(locked) => {
+                  // Also resume audio on lock
+                  window.dispatchEvent(
+                    new CustomEvent("__pointerlock_change__", {
+                      detail: { locked },
+                    })
+                  );
+                }}
+                onFootstep={(foot) => {
+                  // Dispatch footstep event; SoundBridge will handle to keep hook usage inside provider
+                  window.dispatchEvent(
+                    new CustomEvent("__footstep__", { detail: { foot } })
+                  );
+                }}
+              />
+            )}
 
-              {flashOn && <Flashlight />}
+            {flashOn && <Flashlight />}
 
-              {/* Loop-specific content: spawns, triggers, SFX per loop */}
-              <LoopManager />
-            </Physics>
-          </SoundProvider>
+            {/* Loop-specific content: spawns, triggers, SFX per loop */}
+            <LoopManager />
+          </Physics>
+        </SoundProvider>
 
-          <Effects isTouch={isTouch} />
-          {(isTouch || lowPerf) && <AdaptiveDpr pixelated />}
-          {dev && <Stats className="stats-top-right" />}
-
-          <Preload all />
-        </Suspense>
+        <Effects isTouch={isTouch} />
+        {(isTouch || lowPerf) && <AdaptiveDpr pixelated />}
+        {dev && <Stats className="stats-top-right" />}
+        {/* Warm up a few frames before we reveal the scene */}
+        {onFirstFrameReady && <FirstFrameReady onReady={onFirstFrameReady} />}
+        <Preload all />
       </Canvas>
     </>
   );
+}
+
+function FirstFrameReady({ onReady }: { onReady: () => void }) {
+  const [done, setDone] = useState(false);
+  const frameCount = useRef(0);
+
+  useFrame(() => {
+    if (done) return;
+    frameCount.current += 1;
+    if (frameCount.current > 3) {
+      setDone(true);
+      onReady();
+    }
+  });
+
+  return null;
 }
 
 // Small internal bridge component to access useSound inside the provider scope
@@ -341,7 +355,6 @@ function EditorLights() {
     dom.addEventListener("pointerdown", onPointerDown);
     return () => dom.removeEventListener("pointerdown", onPointerDown);
   }, [gl, camera, setSelectedId]);
-  
 
   return (
     <group
@@ -366,7 +379,9 @@ function EditorLights() {
           groupRefs.current[id] = node ?? undefined;
         }}
       />
-      <EditorTransformControls target={target} selectedId={selectedId} 
+      <EditorTransformControls
+        target={target}
+        selectedId={selectedId}
         draggingRef={draggingRef}
       />
     </group>
