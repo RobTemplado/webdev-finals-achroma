@@ -3,6 +3,7 @@
 import useIsTouch from "@/hooks/useIsTouch";
 import useViewportVH from "@/hooks/useViewportVH";
 import SceneCanvas from "@/components/SceneCanvas";
+import { GlobalDebugConsoleOverlay } from "@/components/GlobalDebugConsoleOverlay";
 import { useSearchParams } from "next/navigation";
 import { GameUI } from "@/components/game-ui/GameUI";
 import { Preloader } from "@/components/Preloader";
@@ -26,6 +27,7 @@ function Home() {
   const { flashOn, started, setStarted, setLocked, setLoop } = useGameState();
   const params = useSearchParams();
   const editor = (params.get("editor") ?? "") !== ""; // any value enables
+  const showConsole = (params.get("showConsole") ?? "") !== "";
   const [showTitle, setShowTitle] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
 
@@ -67,6 +69,8 @@ function Home() {
 
       {!editor && !showTitle && sceneReady && <GameUI isTouch={isTouch} />} 
       {!editor && !showTitle && sceneReady && isTouch && <MobileUI />}
+
+      {showConsole && <GlobalDebugConsoleOverlay />}
     </div>
   );
 }
