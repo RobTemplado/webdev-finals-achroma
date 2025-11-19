@@ -18,6 +18,11 @@ function useBasementDoor(scene: THREE.Group | undefined) {
   const targetYRef = useRef(0);
   const initialYRef = useRef(0);
 
+  // End door state
+  const endDoorLockedRef = useRef(false);
+  const endDoorOpeningRef = useRef(false);
+  const endDoorTargetYRef = useRef(0);
+  const initialEndDoorYRef = useRef(0);
 
   const playerVelocity = useGameState((s) => s.playerVelocity);
 
@@ -55,14 +60,46 @@ function useBasementDoor(scene: THREE.Group | undefined) {
     }
     if (doorEnd) {
       _doorEndRef.current = doorEnd;
+      initialEndDoorYRef.current = doorEnd.rotation.y;
     }
   }, [scene]);
+
+  // Listen for unlock event
+  useEffect(() => {
+    const handleUnlock = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      const silent = detail?.silent ?? false;
+
+      if (!silent) {
+        sound.playOneShot("door_creak", { volume: 0.3 });
+      }
+      
+      endDoorLockedRef.current = false;
+      // Open slightly
+      if (_doorEndRef.current) {
+        // 5 degrees
+         endDoorTargetYRef.current = initialEndDoorYRef.current + Math.PI / 36; // 5   degrees
+         endDoorOpeningRef.current = true;
+      }
+    };
+    const handleLock = () => {
+      endDoorLockedRef.current = true;
+    };
+
+    window.addEventListener("__unlock_end_door__", handleUnlock);
+    window.addEventListener("__lock_end_door__", handleLock);
+    return () => {
+      window.removeEventListener("__unlock_end_door__", handleUnlock);
+      window.removeEventListener("__lock_end_door__", handleLock);
+    };
+  }, [sound]);
 
   function closeDoor() {
     const door = _doorStartRef.current;
     if (!door) return;
 
     doorClosedRef.current = true;
+    endDoorLockedRef.current = true;
     targetYRef.current = initialYRef.current;
     openingRef.current = true;
     openedRef.current = false;
@@ -70,7 +107,7 @@ function useBasementDoor(scene: THREE.Group | undefined) {
     sound.playDoorClose();
   }
 
-  function openStartDoor(
+  function openStartDoor( 
     withScriptedMove: boolean,
     distanceToDoor: number = 0
   ) {
@@ -161,6 +198,10 @@ function useBasementDoor(scene: THREE.Group | undefined) {
     if (dist > threshold) {
       console.log("Too far from DoorEnd for teleport:", dist);
       return false;
+    }
+
+    if (endDoorLockedRef.current) {
+        return false;
     }
 
     // first walk towards door end (if not close enough yet)
@@ -292,8 +333,6 @@ function useBasementDoor(scene: THREE.Group | undefined) {
 
     doorPos.y = camera.position.y;
 
-    DebugGizmos.sphere(doorPos, 0.1, 'blue', 100);
-
     const dist = doorPos.distanceTo(camera.position);
     const threshold = 0.515;
 
@@ -339,6 +378,21 @@ function useBasementDoor(scene: THREE.Group | undefined) {
         openedRef.current = !openedRef.current;
       }
       door.rotation.y = next;
+    }
+
+    // End door animation
+    const doorEnd = _doorEndRef.current;
+    if (doorEnd && endDoorOpeningRef.current) {
+      const speed = 0.5;
+      const y = doorEnd.rotation.y;
+      const target = endDoorTargetYRef.current;
+      const step = Math.sign(target - y) * speed * delta;
+      let next = y + step;
+      if ((step > 0 && next >= target) || (step < 0 && next <= target)) {
+        next = target;
+        endDoorOpeningRef.current = false;
+      }
+      doorEnd.rotation.y = next;
     }
   });
 }

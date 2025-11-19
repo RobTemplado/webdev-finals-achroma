@@ -9,7 +9,7 @@ export function MobileUI() {
 
   return (
     <>
-      <MobileControls  />
+      <MobileControls />
       <TouchDebug />
     </>
   );

@@ -180,7 +180,7 @@ export default function SceneCanvas({
             <RigidBody type="fixed" colliders={false}>
               <CuboidCollider args={[25, 0.1, 25]} position={[0, -0.5, 0]} />
             </RigidBody>
-            {!lowPerf && !isTouch && (
+            {!lowPerf && (
               <ContactShadows
                 position={[0, -0.49, 0]}
                 opacity={0.35}
@@ -231,7 +231,7 @@ export default function SceneCanvas({
         
         <DebugGizmoRenderer />
         
-        {!isTouch && <Preload all />}
+         <Preload all />
       </Canvas>
     </>
   );

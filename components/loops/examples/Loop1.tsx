@@ -151,7 +151,8 @@ function ApplyLoop1Lighting() {
 
       let mult = 1;
       if (t <= st.blinkUntil) {
-        mult = 0.05; // deep dip during blink
+        // Deep dip during blink, but never fully off
+        mult = 0.15;
         // When lights dip (off-ish), play the "on" click (0-1s segment)
         sound?.playSegment("lights_on_off", {
           start: 0,
@@ -164,10 +165,15 @@ function ApplyLoop1Lighting() {
         const n1 = Math.sin((t * st.speed + st.phase) * 2.0);
         const n2 = Math.sin((t * (st.speed * 0.37) + st.phase * 1.7) * 3.0);
         const noise = (n1 + 0.5 * n2) * 0.5; // roughly [-0.75, 0.75]
-        mult = 1 - st.amp * 0.5 + st.amp * (noise * 0.5 + 0.5); // ~ [1-amp, 1]
+        // Base multiplier stays within [minMult, 1]
+        const minMult = 0.2; // never dim below 20% of base
+        mult =
+          minMult +
+          (1 - minMult) * (1 - st.amp * 0.5 + st.amp * (noise * 0.5 + 0.5));
       }
 
-      const newIntensity = Math.max(0, base * mult);
+      // Ensure we never quite hit 0 to avoid full blackouts
+      const newIntensity = Math.max(base * 0.2, base * mult);
       if (typeof (light as any).intensity === "number") {
         (light as any).intensity = newIntensity;
       }
@@ -202,6 +208,16 @@ function ApplyLoop1Lighting() {
 }
 
 function Loop1Impl({ loop }: LoopComponentProps) {
+  useEffect(() => {
+     // Unlock door for now as there is no puzzle
+     const t = setTimeout(() => {
+         window.dispatchEvent(new CustomEvent("__unlock_end_door__", {
+            detail: { silent: true }
+         }));
+     }, 1000);
+     return () => clearTimeout(t);
+  }, []);
+
   // Put any extra loop-specific content here: props, triggers, etc.
   return <ApplyLoop1Lighting />;
 }

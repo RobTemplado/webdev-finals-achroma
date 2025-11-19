@@ -182,65 +182,45 @@ export class SoundManager {
   }
 
   /**
-   * Play a segment (slice) of an AudioBuffer without creating THREE.Audio wrapper.
-   * Useful for sprite-like usage (e.g., door open/close in same file).
+   * Play a segment (slice) of an AudioBuffer.
+   * Uses THREE.Audio for compatibility.
    */
   playSegment(name: string, segment: SegmentOptions) {
-    // Ensure context is running to avoid start-up delay on some browsers
+    // Ensure context is running
     if (this.context.state !== "running") {
-      // fire-and-forget; we don't await to keep call sync
       this.context.resume().catch(() => {});
     }
-    console.log("Playing segment", name, segment);
+    
     const buf = this.getBuffer(name);
     if (!buf) return;
+
     const { start, duration, group = "sfx", volume = 1, playbackRate = 1, detune } = segment;
-    if (start >= buf.duration) return; // out of range
-    const playDur = Math.max(0, duration !== undefined ? duration : buf.duration - start);
-    if (playDur <= 0) return;
+    
+    // Use THREE.Audio to ensure compatibility with listener/context
+    const src = new THREE.Audio(this.listener);
+    src.setBuffer(buf);
+    src.setLoop(false);
+    src.setVolume(volume);
+    src.setPlaybackRate(playbackRate);
+    if (detune !== undefined) src.setDetune(detune);
 
-    const ctx = this.context;
-    const source = ctx.createBufferSource();
-    source.buffer = buf;
-    source.playbackRate.value = playbackRate;
-    if (typeof detune === "number" && (source as any).detune) {
-      (source as any).detune.value = detune;
+    // Set offset/duration
+    // @ts-ignore - THREE.Audio supports offset/duration but types might vary
+    src.offset = start;
+    if (duration !== undefined) {
+        // @ts-ignore
+        src.duration = duration;
     }
 
-  // Gain for volume with tiny de-click envelope
-  const gain = ctx.createGain();
-  const vol = Math.max(0, Math.min(1, volume));
-  const now = ctx.currentTime;
-  gain.gain.setValueAtTime(0, now);
-  gain.gain.linearRampToValueAtTime(vol, now + 0.005);
+    src.play();
 
-    // Route: source -> gain -> groupNode -> master
-    const groupNode = this.getGroupNode(group);
-    source.connect(gain);
-    gain.connect(groupNode);
+    // Cleanup
+    const effectiveDuration = duration !== undefined ? duration : (buf.duration - start);
+    const totalMs = (effectiveDuration / playbackRate) * 1000 + 100;
 
-    // Start playback at offset with duration
-    try {
-      source.start(0, start, playDur);
-    } catch {
-      return;
-    }
-
-    // Cleanup after it finishes (consider playbackRate scaling)
-  // Schedule a tiny fade-out at the end to avoid clicks
-  const totalSec = playDur / playbackRate;
-  gain.gain.setValueAtTime(vol, now + Math.max(0, totalSec - 0.01));
-  gain.gain.linearRampToValueAtTime(0, now + Math.max(0, totalSec - 0.002));
-
-  const totalMs = totalSec * 1000 + 50;
     setTimeout(() => {
-      try {
-        source.stop();
-      } catch {}
-      try {
-        source.disconnect();
-        gain.disconnect();
-      } catch {}
+        if (src.isPlaying) src.stop();
+        if (src.disconnect) src.disconnect();
     }, totalMs);
   }
 
@@ -292,7 +272,7 @@ export class SoundManager {
 
     try {
       // Start at the beginning of the segment
-      source.start(0, start);
+      source.start(now, start);
     } catch {
       return () => {};
     }

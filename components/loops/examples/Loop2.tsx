@@ -125,13 +125,19 @@ function Loop2Impl({ loop }: LoopComponentProps) {
           ) {
             // Cache original intensity then turn it off
             offLightOriginalRef.current = { intensity: lightObj.intensity };
-            lightObj.intensity = 0;
+            lightObj.intensity = 0.03;
           }
         });
       }
     }, 100);
 
+    // Unlock door for now
+    const t = setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("__unlock_end_door__"));
+    }, 3500);
+
     return () => {
+      clearTimeout(t);
       // Restore original rotations when Loop 2 unmounts
       for (const { object, rotationY } of originals) {
         object.rotation.y = rotationY;

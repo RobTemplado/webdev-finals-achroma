@@ -18,7 +18,7 @@ export default function MobileControls() {
   const isTouch = useIsTouch();
   const [visible, setVisible] = useState(false);
   const [movedOnce, setMovedOnce] = useState(false);
-  const [hintsVisible, setHintsVisible] = useState(true);
+  const [hintsVisible, setHintsVisible] = useState(false);
   const [hintsFade, setHintsFade] = useState(false);
 
   useEffect(() => {
@@ -68,8 +68,7 @@ export default function MobileControls() {
   // Left area handlers (movement)
   const onLeftTouchStart = (e: React.TouchEvent) => {
     // Prevent page gestures on iOS
-    preventGestures(e);
-    e.stopPropagation();
+ 
     if (leftId.current != null) return;
     const t = e.changedTouches[0];
     leftId.current = t.identifier;
@@ -121,7 +120,7 @@ export default function MobileControls() {
       <>
         {/* Left: movement joystick (higher z) */}
         <div
-          className="absolute left-3 bottom-3 h-36 w-36 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 touch-none select-none z-20"
+          className="pointer-events-auto absolute left-3 bottom-[max(0.75rem,env(safe-area-inset-bottom,0.5rem))] h-36 w-36 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 touch-none select-none z-20"
           onTouchStart={onLeftTouchStart}
           onTouchMove={onLeftTouchMove}
           onTouchEnd={onLeftTouchEnd}
@@ -137,15 +136,15 @@ export default function MobileControls() {
         </div>
 
         {/* Onboarding hints overlay */}
-        {hintsVisible && (
+        {true && (
           <div
             className={`pointer-events-none absolute inset-0 z-[25] transition-opacity duration-500 ${
               hintsFade ? "opacity-0" : "opacity-100"
             }`}
           >
             {/* Dim corners slightly to hint UI */}
-            <div className="absolute left-3 bottom-3 h-36 w-36 rounded-full border-2 border-white/20" />
-            <div className="absolute left-5 bottom-40 text-xs text-white/70 max-w-[50vw]">
+            <div className="absolute left-3 bottom-[max(0.75rem,env(safe-area-inset-bottom,0.5rem))] h-36 w-36 rounded-full border-2 border-white/20" />
+            <div className="absolute left-5 bottom-[max(8rem,calc(env(safe-area-inset-bottom,0.5rem)+6rem))] text-xs text-white/70 max-w-[50vw]">
               Use this joystick to move
             </div>
           </div>
@@ -157,7 +156,7 @@ export default function MobileControls() {
 
   if (!visible) return null;
   return (
-    <div className="pointer-events-auto absolute inset-0 z-20 mobile-controls">
+    <div className="pointer-events-none absolute inset-0 z-20 mobile-controls">
       {ui}
     </div>
   );

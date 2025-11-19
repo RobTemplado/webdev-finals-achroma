@@ -377,6 +377,9 @@ export default function RadioNarration() {
           detail: { text: "", append: false },
         })
       );
+
+      // Signal end of narration
+      window.dispatchEvent(new CustomEvent("__radio_narration_end__"));
     })();
   };
 

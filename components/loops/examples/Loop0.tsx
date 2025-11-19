@@ -8,6 +8,26 @@ import { useSound } from "@/components/audio/useSound";
 import { useThree, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 
+export const BLOOD_SPLATTERS = [
+  "helpMeBlood",
+  "wallBloodPiano1",
+  "bloodStain4001",
+  "WallBloodPiano2",
+  "wallBloodPiano3",
+  "hallwayBlood3",
+  "hallwayBlood2",
+  "hallwayBlood1",
+  "bloodStain3001",
+  "floorBlood1",
+  "floorBlood2",
+]
+
+export const FALLEN_STUFF = [
+  "paintingFramePiano_taob",
+  "paintingPiano_taob",
+  "pianoChair_taob"
+]
+
 function enableShadowsOnObject(
   scene: THREE.Scene,
   name: string,
@@ -73,6 +93,39 @@ function Loop0Impl({ loop }: LoopComponentProps) {
     duration: 1,
     initialized: false,
   });
+
+  useEffect(() => {
+    // Lock the door initially so player must wait for narration
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("__lock_end_door__"));
+    }, 50);
+
+    const handleNarrationEnd = () => {
+      window.dispatchEvent(new CustomEvent("__unlock_end_door__"));
+    };
+
+    window.addEventListener("__radio_narration_end__", handleNarrationEnd);
+
+    return () => {
+      window.removeEventListener("__radio_narration_end__", handleNarrationEnd);
+    };
+  }, []);
+
+  useEffect(() => {
+    for (const name of BLOOD_SPLATTERS) {
+      const obj = scene.getObjectByName(name);
+      if (obj) {
+        obj.visible = false;
+      }
+    }
+
+    for (const name of FALLEN_STUFF) {
+      const obj = scene.getObjectByName(name);
+      if (obj) {
+        obj.visible = false;
+      }
+    }
+  }, [])
 
   useFrame((state) => {
     // Try to find and initialize the light if not done yet
@@ -227,6 +280,8 @@ function Loop0Impl({ loop }: LoopComponentProps) {
 
       if (wife) {
         wife.visible = false;
+      } else {
+        console.log("Wife object not found in scene");
       }
     });
 

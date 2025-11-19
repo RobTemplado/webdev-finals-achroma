@@ -1,6 +1,7 @@
 "use client";
 
 import { useGameState } from "@/store/gameState";
+import useIsTouch from "@/hooks/useIsTouch";
 import React, { useEffect, useState } from "react";
 
 interface TitleScreenProps {
@@ -9,6 +10,7 @@ interface TitleScreenProps {
 
 export default function TitleScreen({ onStart }: TitleScreenProps) {
   const [isStarting, setIsStarting] = useState(false);
+  const isTouch = useIsTouch();
 
   const loop = useGameState((s) => s.loop);
   const setLoop = useGameState((s) => s.setLoop);
@@ -32,9 +34,9 @@ export default function TitleScreen({ onStart }: TitleScreenProps) {
   return (
     <div
       onClick={handleStart}
-      className={`absolute left-0 top-0 z-[70] h-screen w-full overflow-hidden bg-black font-mono text-gray-300 transition-colors duration-75 cursor-pointer ${
+      className={`absolute left-0 top-0 z-[70] h-[100dvh] w-full overflow-hidden bg-black font-mono text-gray-300 transition-colors duration-75 ${
         isStarting ? "bg-red-950" : ""
-      }`}
+      } ${isTouch ? "cursor-default" : "cursor-pointer"}`}
     >
       {/* 1. Noise Layer */}
       <div className="pointer-events-none absolute inset-0 z-0 opacity-[0.12] mix-blend-overlay">
@@ -74,14 +76,14 @@ export default function TitleScreen({ onStart }: TitleScreenProps) {
       `}</style>
 
       {/* --- Content --- */}
-      <div className="relative z-30 flex h-full flex-col items-center justify-center">
+      <div className="relative z-30 flex h-full flex-col items-center justify-center px-4 text-center">
         {/* Main Title */}
         <div
           className={`flex flex-col items-center transition-all duration-1000 ${
             isStarting ? "scale-105 blur-sm opacity-0" : "scale-100 opacity-100"
           }`}
         >
-          <h1 className="relative text-6xl md:text-9xl font-bold tracking-[0.2em] uppercase text-white mix-blend-difference">
+          <h1 className="relative text-4xl xs:text-5xl sm:text-6xl md:text-8xl lg:text-9xl font-bold tracking-[0.15em] sm:tracking-[0.2em] uppercase text-white mix-blend-difference">
             Achroma
             {/* Subtle red shadow/ghost */}
             <span className="absolute left-1 top-0 -z-10 text-red-900 opacity-60 blur-[1px]">
@@ -93,16 +95,20 @@ export default function TitleScreen({ onStart }: TitleScreenProps) {
         </div>
 
         {/* "Click to Start" Prompt */}
-        <div className="absolute bottom-24 flex flex-col items-center gap-4">
+        <div className="absolute bottom-16 sm:bottom-20 md:bottom-24 flex flex-col items-center gap-3 sm:gap-4 px-4 text-center">
           {/* The prompt itself */}
           <p
-            className={`text-sm md:text-base tracking-[0.4em] uppercase text-gray-500 transition-all duration-300 ${
+            className={`text-xs sm:text-sm md:text-base tracking-[0.25em] sm:tracking-[0.35em] uppercase text-gray-400 transition-all duration-300 ${
               isStarting
                 ? "text-red-500 font-bold translate-y-1"
                 : "animate-pulse"
             }`}
           >
-            {isStarting ? "Run." : "Press any key to start"}
+            {isStarting
+              ? "Run."
+              : isTouch
+              ? "Tap anywhere to start"
+              : "Press any key or click to start"}
           </p>
 
           {/* Decor element */}
@@ -114,7 +120,7 @@ export default function TitleScreen({ onStart }: TitleScreenProps) {
         </div>
 
         {/* Corner Version Number */}
-        <div className="absolute bottom-4 right-6 text-[10px] text-gray-800 tracking-widest font-thin select-none">
+        <div className="absolute bottom-4 right-4 sm:right-6 text-[9px] sm:text-[10px] text-gray-800 tracking-widest font-thin select-none">
           v0.0.1 ALPHA
         </div>
       </div>
