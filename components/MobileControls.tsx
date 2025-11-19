@@ -72,10 +72,7 @@ export default function MobileControls({ onToggleFlashlight }: Props) {
   const deadZone = 8; // px
   const lookSensitivity = 1.0; // multiplier; scaled in FPSControls later
   const preventGestures = (e: React.TouchEvent)  => {
-    // only on ios
-    try{
-      e.preventDefault();
-    } catch {}
+    // 
   }
 
   // Left area handlers (movement)
