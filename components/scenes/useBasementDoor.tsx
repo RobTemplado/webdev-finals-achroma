@@ -139,11 +139,11 @@ function useBasementDoor(scene: THREE.Group | undefined) {
         new CustomEvent("__scripted_move__", {
           detail: {
             durationSec: 2.8,
-            distance: 2.6 + distanceToDoor / 2,
+            distance: 2.4 + distanceToDoor / 2,
             lockLook: true,
             lookAt,
             lookSlerp: 2.5,
-            moveDelaySec: 0.35,
+            moveDelaySec: 0.55,
           },
         })
       );

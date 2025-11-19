@@ -28,6 +28,9 @@ export function GameUI({ isTouch }: GameUIProps) {
       <Crosshair />
       <RadioSubtitleOverlay />
       {!isTouch && !locked && <PointerLockOverlay visible={true} />}
+      
+      {/* Root for R3F Html Portals */}
+      <div id="ui-overlay-root" className="fixed inset-0 z-[60] pointer-events-none" style={{ display: 'grid', placeItems: 'center' }}></div>
     </>
   );
 }

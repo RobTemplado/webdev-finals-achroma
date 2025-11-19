@@ -11,13 +11,15 @@ import NormalLoop from "./NormalLoop";
 import PianoPuzzleLoop from "./PianoPuzzleLoop";
 import RadioPuzzleLoop from "./RadioPuzzleLoop";
 
+
+
 registerLoop(Loop0Impl);
 registerLoop(RadioPuzzleLoop);
 registerLoop(Loop1Impl);
-registerLoop(PianoPuzzleLoop)
 registerLoop(Loop2Impl);
-registerLoop(NormalLoop);
+registerLoop(PianoPuzzleLoop)
 registerLoop(FallenObjectsLoop);
+registerLoop(NormalLoop);
 registerLoop(NormalLoop);
 
 

@@ -3,7 +3,7 @@ import { Volume2, Radio, AlertTriangle, EyeOff } from 'lucide-react';
 import { useSound } from '../../audio/useSound';
 import { useGameState } from '@/store/gameState';
 import { SoundManager } from '../../audio/SoundManager';
-import { OverlayUI } from '@/components/game-ui/OverlayUI';
+import { OverlayUI } from '@/components/OverlayUI';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { consumeInteract } from '@/components/inputStore';
