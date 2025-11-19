@@ -109,7 +109,7 @@ export default function SceneCanvas({
                     position={[0, -0.5, 0]}
                   />
                 </RigidBody>
-                {!lowPerf && !isTouch && (
+                {!lowPerf  && (
                   <ContactShadows
                     position={[0, -0.49, 0]}
                     opacity={0.35}
@@ -146,7 +146,7 @@ export default function SceneCanvas({
     <>
       <Canvas
         id="r3f-canvas"
-        shadows={!isTouch}
+        shadows
         dpr={dprRange}
         gl={{
           outputColorSpace: SRGBColorSpace,
