@@ -28,6 +28,7 @@ import * as THREE from "three";
 import { useEditorStore } from "./editor/editorStore";
 import BasementWalls from "./scenes/BasementWalls";
 import { LoopManager } from "./loops/LoopManager";
+import { DebugGizmoRenderer } from "./DebugGizmoRenderer";
 
 // Lazy-load editor sidebar to keep normal play mode lean
 const LevelEditorSidebar = dynamic(() => import("./editor/LevelEditor"), {
@@ -55,7 +56,7 @@ export default function SceneCanvas({
   const dev = process.env.NODE_ENV !== "production";
   const [lowPerf, setLowPerf] = useState(false);
   const dprRange = useMemo<[number, number]>(
-    () => [1, isTouch ? (lowPerf ? 1.1 : 1.5) : lowPerf ? 1.25 : 2],
+    () => [1, isTouch ? (lowPerf ? 0.8 : 1.0) : lowPerf ? 1.25 : 2],
     [isTouch, lowPerf]
   );
   // Access sound inside Canvas to resume on pointer lock and trigger SFX
@@ -70,13 +71,13 @@ export default function SceneCanvas({
         <div className="relative flex-1 min-w-0">
           <Canvas
             id="r3f-canvas"
-            shadows
+            shadows={!isTouch}
             frameloop="demand"
             dpr={dprRange}
             gl={{
               outputColorSpace: SRGBColorSpace,
               antialias: !isTouch,
-              powerPreference: "high-performance",
+              powerPreference: isTouch ? "default" : "high-performance",
               toneMapping: ACESFilmicToneMapping,
               toneMappingExposure: 1.0,
               stencil: false,
@@ -91,7 +92,7 @@ export default function SceneCanvas({
               onDecline={() => setLowPerf(true)}
               onIncline={() => setLowPerf(false)}
             />
-            <SoundProvider>
+            <SoundProvider isTouch={isTouch}>
               <SoundBridge onPointerLockChange={onPointerLockChange} />
               {/* No radio narration while editing */}
               <Physics gravity={[0, -9.81, 0]} debug={dev && !isTouch}>
@@ -108,7 +109,7 @@ export default function SceneCanvas({
                     position={[0, -0.5, 0]}
                   />
                 </RigidBody>
-                {!lowPerf && (
+                {!lowPerf && !isTouch && (
                   <ContactShadows
                     position={[0, -0.49, 0]}
                     opacity={0.35}
@@ -123,14 +124,16 @@ export default function SceneCanvas({
               </Physics>
             </SoundProvider>
 
-            <Effects isTouch={isTouch} />
+            {!isTouch && <Effects isTouch={isTouch} />}
             {(isTouch || lowPerf) && <AdaptiveDpr pixelated />}
             {dev && <Stats className="stats-top-right" />}
 
             {/* Editor camera/transform tools inside Canvas */}
             <EditorCanvasTools />
 
-            <Preload all />
+            <DebugGizmoRenderer />
+
+            {!isTouch && <Preload all />}
           </Canvas>
         </div>
         {/* Docked right sidebar */}
@@ -143,12 +146,12 @@ export default function SceneCanvas({
     <>
       <Canvas
         id="r3f-canvas"
-        shadows
+        shadows={!isTouch}
         dpr={dprRange}
         gl={{
           outputColorSpace: SRGBColorSpace,
           antialias: !isTouch,
-          powerPreference: "high-performance",
+          powerPreference: isTouch ? "default" : "high-performance",
           toneMapping: ACESFilmicToneMapping,
           toneMappingExposure: 1.0,
           stencil: false,
@@ -158,13 +161,13 @@ export default function SceneCanvas({
         camera={{ position: [0, 1.8, 5], fov: 55 }}
       >
         <color attach="background" args={["#000"]} />
-        <fog attach="fog" args={["#0a0a0a", 15, 35]} />
+        <fog attach="fog" args={["#000", 1, 15]} />
 
         <PerformanceMonitor
           onDecline={() => setLowPerf(true)}
           onIncline={() => setLowPerf(false)}
         />
-        <SoundProvider>
+        <SoundProvider isTouch={isTouch}>
           <SoundBridge onPointerLockChange={onPointerLockChange} />{" "}
           {started && <RadioNarration />}
           <Physics gravity={[0, -9.81, 0]} debug={false}>
@@ -177,7 +180,7 @@ export default function SceneCanvas({
             <RigidBody type="fixed" colliders={false}>
               <CuboidCollider args={[25, 0.1, 25]} position={[0, -0.5, 0]} />
             </RigidBody>
-            {!lowPerf && (
+            {!lowPerf && !isTouch && (
               <ContactShadows
                 position={[0, -0.49, 0]}
                 opacity={0.35}
@@ -190,11 +193,12 @@ export default function SceneCanvas({
             {!editor && (
               <FPSControls
                 speed={1.8}
-                eyeHeight={3.65}
+                eyeHeight={3.85}
                 capsuleHeight={1.85}
                 capsuleRadius={0.25}
                 lagSpeed={8}
                 initialYaw={INITIAL_YAW}
+                initialPitch={-0.10}
                 onLockChange={(locked) => {
                   // Also resume audio on lock
                   window.dispatchEvent(
@@ -219,12 +223,15 @@ export default function SceneCanvas({
           </Physics>
         </SoundProvider>
 
-        <Effects isTouch={isTouch} />
+        {!isTouch && <Effects isTouch={isTouch} />}
         {(isTouch || lowPerf) && <AdaptiveDpr pixelated />}
         {dev && <Stats className="stats-top-right" />}
         {/* Warm up a few frames before we reveal the scene */}
         {onFirstFrameReady && <FirstFrameReady onReady={onFirstFrameReady} />}
-        <Preload all />
+        
+        <DebugGizmoRenderer />
+        
+        {!isTouch && <Preload all />}
       </Canvas>
     </>
   );

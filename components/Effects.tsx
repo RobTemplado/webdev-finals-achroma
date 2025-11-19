@@ -13,13 +13,13 @@ import { BlendFunction, KernelSize, Resolution } from "postprocessing";
 
 export default function Effects({ isTouch }: { isTouch: boolean }) {
   return (
-    <EffectComposer enableNormalPass multisampling={0}>
+    <EffectComposer  multisampling={0}>
       <Vignette eskil={false} offset={0.23} darkness={0.9} />
-      <Noise
+      {/* <Noise
         opacity={isTouch ? 0.15 : 0.3}
         blendFunction={BlendFunction.SOFT_LIGHT}
-      />
-      <ChromaticAberration offset={[0.001, 0.001]} />
+      /> */}
+      {/* <ChromaticAberration offset={[0.001, 0.001]} /> */}
     </EffectComposer>
   );
 }

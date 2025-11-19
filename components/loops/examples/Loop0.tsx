@@ -131,13 +131,6 @@ function Loop0Impl({ loop }: LoopComponentProps) {
     door.getWorldPosition(position);
     position.add(new THREE.Vector3(0, 0.2, -0.5));
 
-    // Dispatch event to force camera look-at via FPSControls
-    window.dispatchEvent(
-      new CustomEvent("__camera_look_at__", {
-        detail: { x: position.x, y: position.y, z: position.z },
-      })
-    );
-
     sound.playLoopingSegment(
       "static_light",
       {
@@ -185,6 +178,9 @@ function Loop0Impl({ loop }: LoopComponentProps) {
       window.dispatchEvent(
         new CustomEvent("__radio_start__", { detail: { radio: "main" } })
       );
+      window.dispatchEvent(
+        new CustomEvent("__clock_start__", { detail: { clock: "main" } })
+      )
     };
 
     window.addEventListener("__on_door_opened__", onDoorOpened);

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useSound } from "@/components/audio/useSound";
 import { consumeInteract } from "../inputStore";
 import { useGameState } from "@/store/gameState";
+import { DebugGizmos } from "@/store/debugStore";
 
 function useBasementDoor(scene: THREE.Group | undefined) {
   const { sound } = useSound();
@@ -16,6 +17,9 @@ function useBasementDoor(scene: THREE.Group | undefined) {
   const openedRef = useRef(false);
   const targetYRef = useRef(0);
   const initialYRef = useRef(0);
+
+
+  const playerVelocity = useGameState((s) => s.playerVelocity);
 
 
   const doorClosedRef = useRef(false);
@@ -124,6 +128,13 @@ function useBasementDoor(scene: THREE.Group | undefined) {
     if (doorClosedRef.current) {
       return;
     }
+
+
+    
+    console.log("Player velocity:", playerVelocity);
+
+
+
     // Check proximity to camera
     const doorPos = new THREE.Vector3();
     door.getWorldPosition(doorPos);
@@ -233,16 +244,84 @@ function useBasementDoor(scene: THREE.Group | undefined) {
 
   // Interaction is now unified via inputStore (pressInteract & consumeInteract)
 
+  function isBumpingFrontDoor(): boolean {
+    const door = _doorStartRef.current;
+    if (!door) return false;
+    let meshObj = door.children[0]
+    if (!meshObj) return false;
+
+    const mesh = meshObj as THREE.Mesh;
+
+    // Check proximity to camera
+    const doorPos = new THREE.Vector3();
+    mesh.geometry.boundingBox!.getCenter(doorPos);
+    mesh.localToWorld(doorPos);
+
+    doorPos.y = camera.position.y;
+
+    const dist = doorPos.distanceTo(camera.position);
+    const threshold = 0.515; 
+    if (dist > threshold) {
+      return false;
+    }
+
+    
+    
+    // bumping door?
+    const speedThreshold = 1.2; 
+
+    // speed towards door
+    const toDoor = new THREE.Vector3().subVectors(doorPos, camera.position).normalize();
+    const forwardSpeed = toDoor.dot(new THREE.Vector3(playerVelocity.x, playerVelocity.y, playerVelocity.z));
+
+    return forwardSpeed > speedThreshold;
+  }
+
+  function isBumpingEndDoor() {
+    const doorEnd = _doorEndRef.current;
+    if (!doorEnd) return false;
+
+    const meshObj = doorEnd.children[0];
+    if (!meshObj) return false;
+
+    const mesh = meshObj as THREE.Mesh;
+    // Check proximity to camera
+    const doorPos = new THREE.Vector3();
+    mesh.geometry.boundingBox!.getCenter(doorPos);
+    mesh.localToWorld(doorPos);
+
+    doorPos.y = camera.position.y;
+
+    DebugGizmos.sphere(doorPos, 0.1, 'blue', 100);
+
+    const dist = doorPos.distanceTo(camera.position);
+    const threshold = 0.515;
+
+    if (dist > threshold) {
+      return false;
+    }
+
+    // bumping door?
+    const speedThreshold = 1.2;
+    // speed towards door
+    const toDoor = new THREE.Vector3().subVectors(doorPos, camera.position).normalize();
+    const forwardSpeed = toDoor.dot(new THREE.Vector3(playerVelocity.x, playerVelocity.y, playerVelocity.z));
+    return forwardSpeed > speedThreshold;
+  }
+
   // Poll mobile interact flag each frame; also advance opening animation
   useFrame((_, delta) => {
-    if (consumeInteract()) {
-      // Prioritize DoorEnd teleport logic if near
-      if (!tryDoorEndTeleport()) {
-        console.log("Trying to open DoorStart");
-        // otherwise try to open DoorStart if near
+    if (isBumpingFrontDoor() && !openingRef.current) {
         tryOpenStart(true);
-      }
     }
+
+    if (isBumpingEndDoor() && !openingRef.current) {
+        tryDoorEndTeleport();
+    }
+
+    // if (!tryDoorEndTeleport()) {
+    //     tryOpenStart(true);
+    //   }
     // Animate door opening
     const door = _doorStartRef.current;
     if (!door) return;

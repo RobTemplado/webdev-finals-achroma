@@ -7,6 +7,7 @@ import { RigidBody, CapsuleCollider } from "@react-three/rapier";
 import type { RapierRigidBody } from "@react-three/rapier";
 import { getMoveAxes, consumeLookDelta, isTouchMode, setMoveAxes } from "./inputStore";
 import { LaggyPointerLockControls, LaggyPointerLockControlsRef } from "./LaggyPointerLockControls";
+import { useGameState } from "@/store/gameState";
 
 export default function FPSControls({
   // Movement
@@ -26,7 +27,7 @@ export default function FPSControls({
   minStepFrequency = 0.1, // Hz at slow walk
   maxStepFrequency = 0.8, // Hz at fast walk/jog
   verticalBobAmplitude = 0.015, // meters
-  lateralBobAmplitude = 0.01, // meters (side sway)
+  lateralBobAmplitude = 0.05, // meters (side sway)
   bobSmoothing = 8, // how quickly intensity blends (higher = snappier)
   speedAmplitudeInfluence = 1, // 0..1, how much speed scales amplitude
   onFootstep,
@@ -91,6 +92,10 @@ export default function FPSControls({
   onLockChange?: (locked: boolean) => void;
 }) {
   const { camera } = useThree();
+  useEffect(() => {
+    console.log("PITCH: ", camera.rotation.x);
+  }, [camera.rotation])
+  const setPlayerVelocity = useGameState((s) => s.setPlayerVelocity);
   // Movement now unified via inputStore (keyboard + touch). No local WASD tracking.
   const right = useMemo(() => new Vector3(), []);
   const dir = useMemo(() => new Vector3(), []);
@@ -343,6 +348,9 @@ export default function FPSControls({
       // Normal free movement
       body.setLinvel({ x: newVX, y: lin.y, z: newVZ }, true);
     }
+
+    // Expose current horizontal velocity to global game state for other systems (e.g., doors)
+    setPlayerVelocity({ x: newVX, y: lin.y, z: newVZ });
 
     // Camera roll based on horizontal (strafe) movement
     // Project velocity onto camera-right axis to get strafe speed

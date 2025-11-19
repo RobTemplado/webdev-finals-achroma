@@ -49,8 +49,10 @@ export const AUDIO_MANIFEST: Record<string, string> = {
 
 export default function SoundProvider({
   children,
+  isTouch = false,
 }: {
   children: React.ReactNode;
+  isTouch?: boolean;
 }) {
   const { camera } = useThree();
 
@@ -97,7 +99,19 @@ export default function SoundProvider({
     let cancelled = false;
     (async () => {
       try {
-        await soundRef.current?.preload(AUDIO_MANIFEST);
+        // On mobile, only preload essential SFX to save memory/bandwidth
+        const manifestToLoad = isTouch
+          ? {
+              footstep_1: AUDIO_MANIFEST.footstep_1,
+              footstep_2: AUDIO_MANIFEST.footstep_2,
+              footstep_3: AUDIO_MANIFEST.footstep_3,
+              footstep_4: AUDIO_MANIFEST.footstep_4,
+              door_open_close: AUDIO_MANIFEST.door_open_close,
+              // Skip ambient/music on mobile initial load
+            }
+          : AUDIO_MANIFEST;
+
+        await soundRef.current?.preload(manifestToLoad);
       } finally {
         if (!cancelled) {
           (window as any).__audio_ready__ = true;

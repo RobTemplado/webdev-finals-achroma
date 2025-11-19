@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import * as THREE from "three";
+import { useThree } from "@react-three/fiber";
 
 export type LightRecord = {
   id: string;
@@ -56,6 +57,15 @@ export default function LightsFromFile({
   }, [overrideLights]);
 
   const lights = overrideLights ?? data ?? [];
+
+  const { gl, scene, camera } = useThree();
+
+  useEffect(() => {
+    // Only precompile in game mode (not editor) to avoid lag during dragging/editing
+    if (!editable && lights.length > 0) {
+      gl.compile(scene, camera);
+    }
+  }, [lights, gl, scene, camera, editable]);
 
   const helpersMat = useMemo(() => new THREE.MeshBasicMaterial({ color: 0xffff88, wireframe: true }), []);
 
