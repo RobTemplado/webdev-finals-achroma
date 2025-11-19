@@ -68,7 +68,7 @@ function Home() {
       )}
 
       {!editor && !showTitle && sceneReady && <GameUI isTouch={isTouch} />} 
-      {!editor && !showTitle && sceneReady && isTouch && <MobileUI />}
+      {/* {!editor && !showTitle && sceneReady && isTouch && <MobileUI />} */}
 
       {showConsole && <GlobalDebugConsoleOverlay />}
     </div>

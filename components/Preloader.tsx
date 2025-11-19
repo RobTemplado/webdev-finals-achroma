@@ -53,12 +53,12 @@ export function Preloader() {
 
   // Random Glitch Effect Trigger
   useEffect(() => {
-    const triggerGlitch = () => {
-      setIsGlitching(true);
-      setTimeout(() => setIsGlitching(false), Math.random() * 200 + 50);
-      setTimeout(triggerGlitch, Math.random() * 5000 + 2000);
-    };
-    triggerGlitch();
+    // const triggerGlitch = () => {
+    //   setIsGlitching(true);
+    //   setTimeout(() => setIsGlitching(false), Math.random() * 200 + 50);
+    //   setTimeout(triggerGlitch, Math.random() * 5000 + 2000);
+    // };
+    // triggerGlitch();
   }, []);
 
   return (

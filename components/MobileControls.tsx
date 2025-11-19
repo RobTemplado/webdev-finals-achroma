@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { addLookDelta, setMoveAxes, setTouchMode, pressInteract } from "./inputStore";
-
-type Props = {
-  onToggleFlashlight?: () => void;
-};
+import { setMoveAxes, setTouchMode } from "./inputStore";
 
 // Utility: detect touch-capable device once on mount
 function useIsTouch(): boolean {
@@ -18,14 +14,12 @@ function useIsTouch(): boolean {
   return touch;
 }
 
-export default function MobileControls({ onToggleFlashlight }: Props) {
+export default function MobileControls() {
   const isTouch = useIsTouch();
   const [visible, setVisible] = useState(false);
   const [movedOnce, setMovedOnce] = useState(false);
-  const [lookedOnce, setLookedOnce] = useState(false);
   const [hintsVisible, setHintsVisible] = useState(true);
   const [hintsFade, setHintsFade] = useState(false);
-  const lookTravelRef = useRef(0);
 
   useEffect(() => {
     setVisible(isTouch);
@@ -47,7 +41,7 @@ export default function MobileControls({ onToggleFlashlight }: Props) {
 
   useEffect(() => {
     if (!hintsVisible) return;
-    if (movedOnce && lookedOnce) {
+    if (movedOnce) {
       setHintsFade(true);
       const t = setTimeout(() => {
         setHintsVisible(false);
@@ -57,22 +51,18 @@ export default function MobileControls({ onToggleFlashlight }: Props) {
       }, 600);
       return () => clearTimeout(t);
     }
-  }, [movedOnce, lookedOnce, hintsVisible]);
+  }, [movedOnce, hintsVisible]);
 
   // Left joystick state
   const leftId = useRef<number | null>(null);
   const leftCenter = useRef<{ x: number; y: number } | null>(null);
   const stickRef = useRef<HTMLDivElement | null>(null);
 
-  // Right look drag state
-  const rightId = useRef<number | null>(null);
-
   // Config
   const maxRadius = 60; // px
   const deadZone = 8; // px
-  const lookSensitivity = 1.0; // multiplier; scaled in FPSControls later
   const preventGestures = (e: React.TouchEvent)  => {
-    // 
+    // only on 
   }
 
   // Left area handlers (movement)
@@ -126,60 +116,9 @@ export default function MobileControls({ onToggleFlashlight }: Props) {
     el.style.transform = `translate(${dx}px, ${dy}px)`;
   }
 
-  // Right area handlers (look)
-  const onRightTouchStart = (e: React.TouchEvent) => {
-    preventGestures(e);
-    e.stopPropagation();
-    if (rightId.current != null) return;
-    const t = e.changedTouches[0];
-    rightId.current = t.identifier;
-    (onRightTouchMove as any)._prev = { x: t.clientX, y: t.clientY };
-  };
-  const onRightTouchMove = (e: React.TouchEvent) => {
-    preventGestures(e);
-    e.stopPropagation();
-    if (rightId.current == null) return;
-    const t = getTouchById(e, rightId.current);
-    if (!t) return;
-    // Use movementX/movementY like behavior by tracking previous positions
-    const prev = (onRightTouchMove as any)._prev as
-      | { x: number; y: number }
-      | undefined;
-    const cur = { x: t.clientX, y: t.clientY };
-    if (prev) {
-      const dx = cur.x - prev.x;
-      const dy = cur.y - prev.y;
-      addLookDelta(dx * lookSensitivity, dy * lookSensitivity);
-      lookTravelRef.current += Math.hypot(dx, dy);
-      if (!lookedOnce && lookTravelRef.current > 40) setLookedOnce(true);
-    }
-    (onRightTouchMove as any)._prev = cur;
-  };
-  const onRightTouchEnd = (e: React.TouchEvent) => {
-    preventGestures(e);
-    e.stopPropagation();
-    const id = rightId.current;
-    if (id == null) return;
-    const t = getTouchById(e, id);
-    if (!t) return;
-    rightId.current = null;
-    (onRightTouchMove as any)._prev = undefined;
-  };
-
   const ui = useMemo(
     () => (
       <>
-        {/* Look area: full-screen; lower z so joystick/button are on top */}
-        <div
-          className="absolute inset-0 z-10 touch-none select-none"
-          onTouchStart={onRightTouchStart}
-          onTouchMove={onRightTouchMove}
-          onTouchEnd={onRightTouchEnd}
-          onTouchCancel={onRightTouchEnd}
-          aria-hidden
-
-        />
-
         {/* Left: movement joystick (higher z) */}
         <div
           className="absolute left-3 bottom-3 h-36 w-36 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 touch-none select-none z-20"
@@ -197,58 +136,6 @@ export default function MobileControls({ onToggleFlashlight }: Props) {
           </div>
         </div>
 
-        {/* Flashlight toggle button (topmost) */}
-        <button
-          type="button"
-          aria-label="Toggle flashlight"
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleFlashlight?.();
-          }}
-          onTouchStart={(e) => {
-            preventGestures(e);
-            e.stopPropagation();
-          }}
-          onTouchMove={(e) => {
-            preventGestures(e);
-            e.stopPropagation();
-          }}
-          onTouchEnd={(e) => {
-           preventGestures(e);
-            e.stopPropagation();
-            onToggleFlashlight?.();
-          }}
-          className="absolute bottom-3 right-3 z-30 h-12 px-4 rounded-lg bg-white/10 border border-white/20 text-white text-sm active:scale-95"
-        >
-          Flashlight
-        </button>
-
-        {/* Interact button (E equivalent) */}
-        <button
-          type="button"
-          aria-label="Interact"
-          onClick={(e) => {
-            e.stopPropagation();
-            pressInteract();
-          }}
-          onTouchStart={(e) => {
-            preventGestures(e);
-            e.stopPropagation();
-          }}
-          onTouchMove={(e) => {
-            preventGestures(e);
-            e.stopPropagation();
-          }}
-          onTouchEnd={(e) => {
-           preventGestures(e);
-            e.stopPropagation();
-            pressInteract();
-          }}
-          className="absolute bottom-3 right-28 z-30 h-12 px-4 rounded-lg bg-white/10 border border-white/20 text-white text-sm active:scale-95"
-        >
-          Interact
-        </button>
-
         {/* Onboarding hints overlay */}
         {hintsVisible && (
           <div
@@ -260,9 +147,6 @@ export default function MobileControls({ onToggleFlashlight }: Props) {
             <div className="absolute left-3 bottom-3 h-36 w-36 rounded-full border-2 border-white/20" />
             <div className="absolute left-5 bottom-40 text-xs text-white/70 max-w-[50vw]">
               Use this joystick to move
-            </div>
-            <div className="absolute right-4 bottom-4 text-xs text-white/70">
-              Drag anywhere to look
             </div>
           </div>
         )}

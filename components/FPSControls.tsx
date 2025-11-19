@@ -501,8 +501,7 @@ export default function FPSControls({
     <>
       {/* Pointer lock for mouse look (disabled on touch devices)
           Use built-in PointerLockControls events rather than document listeners. */}
-      {!isTouch && (
-        <LaggyPointerLockControls
+      <LaggyPointerLockControls
           ref={lagControlsRef}
           selector="#r3f-canvas"
           enabled={plcEnabled}
@@ -510,7 +509,6 @@ export default function FPSControls({
           onLock={() => onLockChange?.(true)}
           onUnlock={() => onLockChange?.(false)}
         />
-      )}
 
       {/* Debug overlay (top-left fixed) */}
       {debugOn &&

@@ -9,7 +9,7 @@ export function MobileUI() {
 
   return (
     <>
-      <MobileControls onToggleFlashlight={toggleFlashlight} />
+      <MobileControls  />
       <TouchDebug />
     </>
   );
