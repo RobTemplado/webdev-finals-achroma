@@ -18,6 +18,9 @@ export default function TitleScreen({ onStart }: TitleScreenProps) {
   const handleStart = () => {
     if (isStarting) return;
 
+    // Force audio resume on user interaction
+    window.dispatchEvent(new Event("__resume_audio__"));
+
     setIsStarting(true);
 
     if (loop === -1) {

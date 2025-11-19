@@ -179,6 +179,8 @@ function Loop0Impl({ loop }: LoopComponentProps) {
   });
 
   function playOpeningSequence() {
+    console.log("Loop0: Playing door opening sequence");
+    
     const door = scene.getObjectByName("DoorStart")!;
     const position = new THREE.Vector3();
     door.getWorldPosition(position);
@@ -193,7 +195,10 @@ function Loop0Impl({ loop }: LoopComponentProps) {
       "static_light"
     );
 
+    console.log("Playing static light loop");
+
     sound.playSegment("door_creak", {
+      group: "sfx",
       start: 0,
       volume: 0.3,
     });
@@ -223,6 +228,7 @@ function Loop0Impl({ loop }: LoopComponentProps) {
 
   useEffect(() => {
     setTimeout(() => {
+      console.log("Loop0: Starting opening sequence");
       playOpeningSequence();
     }, 100);
 
@@ -275,7 +281,6 @@ function Loop0Impl({ loop }: LoopComponentProps) {
       const wife = enableShadowsOnObject(scene, wifeName, {
         cast: true,
         receive: false,
-        logLabel: "wife",
       });
 
       if (wife) {
@@ -394,10 +399,6 @@ function Loop0Impl({ loop }: LoopComponentProps) {
 
         wallBesideCabinet.traverse((child) => {
           if ((child as any).isMesh) {
-            console.log(
-              "enabling shadows on wall beside cabinet mesh",
-              child.name
-            );
             const mesh = child as THREE.Mesh;
             mesh.castShadow = false;
             mesh.receiveShadow = true;
@@ -428,7 +429,6 @@ function Loop0Impl({ loop }: LoopComponentProps) {
 
     const cube = scene.getObjectByName("Cube001");
     if (cube) {
-      console.log("enabling shadows on cube");
       cube.castShadow = true;
       // cube.receiveShadow = true;
     }

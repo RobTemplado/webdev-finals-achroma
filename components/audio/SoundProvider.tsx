@@ -100,7 +100,7 @@ export default function SoundProvider({
     (async () => {
       try {
         // On mobile, only preload essential SFX to save memory/bandwidth
-        const manifestToLoad = isTouch
+        const manifestToLoad = false
           ? {
               footstep_1: AUDIO_MANIFEST.footstep_1,
               footstep_2: AUDIO_MANIFEST.footstep_2,
@@ -135,9 +135,12 @@ export default function SoundProvider({
 
     window.addEventListener("pointerdown", resumeAndPlayQueued, { once: true });
     window.addEventListener("keydown", resumeAndPlayQueued, { once: true });
+    window.addEventListener("__resume_audio__", resumeAndPlayQueued, { once: true });
+    
     return () => {
       window.removeEventListener("pointerdown", resumeAndPlayQueued);
       window.removeEventListener("keydown", resumeAndPlayQueued);
+      window.removeEventListener("__resume_audio__", resumeAndPlayQueued);
     };
   }, []);
 

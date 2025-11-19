@@ -188,11 +188,15 @@ export class SoundManager {
   playSegment(name: string, segment: SegmentOptions) {
     // Ensure context is running
     if (this.context.state !== "running") {
-      this.context.resume().catch(() => {});
+      console.warn("AudioContext not running; attempting to resume.");
+      this.context.resume().catch((e) => console.error(e));
     }
     
     const buf = this.getBuffer(name);
-    if (!buf) return;
+    if (!buf) {
+      console.error(`SoundManager: Buffer not found for segment play: ${name}`);
+      return;
+    }
 
     const { start, duration, group = "sfx", volume = 1, playbackRate = 1, detune } = segment;
     
@@ -211,6 +215,8 @@ export class SoundManager {
         // @ts-ignore
         src.duration = duration;
     }
+
+    console.log(`Playing segment: ${name} from ${start} for ${duration ?? "full length"}`);
 
     src.play();
 
@@ -231,7 +237,8 @@ export class SoundManager {
    */
   playLoopingSegment(name: string, segment: SegmentOptions, loopId?: string): () => void {
     if (this.context.state !== "running") {
-      this.context.resume().catch(() => {});
+      console.warn("AudioContext not running; attempting to resume.");
+      this.context.resume().catch(e => console.error(e));
     }
     const buf = this.getBuffer(name);
     if (!buf) return () => {};
