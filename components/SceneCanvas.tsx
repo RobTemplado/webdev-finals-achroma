@@ -189,10 +189,11 @@ export default function SceneCanvas({
 
             {!editor && (
               <FPSControls
-                speed={1.0}
+                speed={1.8}
                 eyeHeight={3.65}
                 capsuleHeight={1.85}
                 capsuleRadius={0.25}
+                lagSpeed={8}
                 initialYaw={INITIAL_YAW}
                 onLockChange={(locked) => {
                   // Also resume audio on lock

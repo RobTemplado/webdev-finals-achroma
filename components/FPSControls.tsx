@@ -344,6 +344,18 @@ export default function FPSControls({
       body.setLinvel({ x: newVX, y: lin.y, z: newVZ }, true);
     }
 
+    // Camera roll based on horizontal (strafe) movement
+    // Project velocity onto camera-right axis to get strafe speed
+    const strafeSpeed = newVX * right.x + newVZ * right.z;
+    const maxLeanAngle = 0.03; // radians (~11 degrees)
+    const rollFromStrafe =
+      -((strafeSpeed / Math.max(speed, 0.001)) * maxLeanAngle);
+    const rollLerp = Math.min(1, 10 * delta); // smoothing factor
+    const currentRoll = camera.rotation.z || 0;
+    const targetRoll = isMoving ? rollFromStrafe : 0;
+    camera.rotation.z =
+      currentRoll + (targetRoll - currentRoll) * rollLerp;
+
     // Advance scripted sequence timer
     if (override) {
       if (override.moveDelayLeft > 0) {
