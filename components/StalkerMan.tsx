@@ -42,6 +42,7 @@ export function StalkerMan(props: StalkerManProps) {
   const { sound } = useSound();
   const { isDead, die, respawn } = useGameState();
   const lastFootstepTime = useRef(0);
+  const isLeftFootNext = useRef(true);
 
   const [state, setState] = useState<StalkerState>("stalking");
   const [currentAnimation, setCurrentAnimation] = useState<ManAnimation>("Walk");
@@ -95,11 +96,12 @@ export function StalkerMan(props: StalkerManProps) {
       if (distToTarget > 0.1) {
         group.current.position.add(dirToTarget.multiplyScalar(speed * delta));
 
-        // Footsteps
+        // Footsteps (alternate left/right)
         const now = threeState.clock.elapsedTime;
         const interval = speed > 6 ? 0.35 : 0.6;
         if (now - lastFootstepTime.current > interval) {
-          sound.playFootstep();
+          sound.playFootstep(isLeftFootNext.current ? "left" : "right", 0.5);
+          isLeftFootNext.current = !isLeftFootNext.current;
           lastFootstepTime.current = now;
         }
       }

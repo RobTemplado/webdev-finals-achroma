@@ -210,12 +210,11 @@ function ApplyLoop1Lighting() {
 function Loop1Impl({ loop }: LoopComponentProps) {
   useEffect(() => {
      // Unlock door for now as there is no puzzle
-     const t = setTimeout(() => {
+   setTimeout(() => {
          window.dispatchEvent(new CustomEvent("__unlock_end_door__", {
-            detail: { silent: true }
+            detail: { silent: false }
          }));
-     }, 1000);
-     return () => clearTimeout(t);
+     }, 5000);
   }, []);
 
   // Put any extra loop-specific content here: props, triggers, etc.

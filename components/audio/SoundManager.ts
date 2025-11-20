@@ -424,7 +424,7 @@ export class SoundManager {
   }
 
   // Convenience variations
-  async playFootstep(which: "left" | "right" | "any" = "any") {
+  async playFootstep(which: "left" | "right" | "any" = "any", volumeMultiplier: number = 1) {
     const now = performance.now();
     if (now - this.lastFootstepAt < 110) return; // rate limit
     this.lastFootstepAt = now;
@@ -433,7 +433,7 @@ export class SoundManager {
     if (this.has(name)) {
       this.playOneShot(name, {
         group: "sfx",
-        volume: 0.6 + Math.random() * 0.15,
+        volume: (0.6 + Math.random() * 0.15) * volumeMultiplier,
         playbackRate: 0.95 + Math.random() * 0.1,
       });
     }

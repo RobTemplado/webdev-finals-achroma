@@ -6,6 +6,7 @@ export default function FallenObjectsLoop() {
     const { scene } = useThree();
 
     useEffect(() => {
+        console.log("FallenObjectsLoop: Making fallen objects visible.");
         FALLEN_STUFF.forEach((objName) => {
             const obj = scene.getObjectByName(objName);
             if (obj) {
@@ -18,10 +19,11 @@ export default function FallenObjectsLoop() {
     
     useEffect(() => {
         // Unlock door immediately
-        const t = setTimeout(() => {
+        setTimeout(() => {
+            console.log("FallenObjectsLoop: Unlocking end door.");
             window.dispatchEvent(new CustomEvent("__unlock_end_door__"));
-        }, 100);
-        return () => clearTimeout(t);
+        }, 12000);
+    
     }, []);
 
     return null;

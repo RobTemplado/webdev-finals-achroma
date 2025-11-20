@@ -286,7 +286,6 @@ export default function PianoPuzzleLoop() {
         setVisible(false);
         setTimeout(() => {
           setFinished(true);
-          setLocked(true);
             
         //   unlock door end
             setTimeout(() => {

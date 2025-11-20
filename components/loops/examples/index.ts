@@ -3,7 +3,9 @@
 // to ensure the loops are registered with the loopRegistry.
 
 import { registerLoop } from "../loopRegistry";
+import BloodyLoop from "./BloodyLoop";
 import FallenObjectsLoop from "./FallenObjectsLoop";
+import JumpScare from "./JumpScare";
 import Loop0Impl from "./Loop0";
 import Loop1Impl from "./Loop1";
 import Loop2Impl from "./Loop2";
@@ -16,10 +18,13 @@ import RadioPuzzleLoop from "./RadioPuzzleLoop";
 registerLoop(Loop0Impl);
 registerLoop(RadioPuzzleLoop);
 registerLoop(Loop1Impl);
+registerLoop(NormalLoop);
 registerLoop(Loop2Impl);
 registerLoop(PianoPuzzleLoop)
 registerLoop(FallenObjectsLoop);
 registerLoop(NormalLoop);
+registerLoop(BloodyLoop);
 registerLoop(NormalLoop);
+registerLoop(JumpScare);
 
 

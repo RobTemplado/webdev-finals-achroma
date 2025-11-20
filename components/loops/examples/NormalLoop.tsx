@@ -7,8 +7,10 @@ export default function NormalLoop() {
   const [showStalker, setShowStalker] = useState(false);
 
   useEffect(() => {
-    // Small chance (e.g. 20%)
-    if (Math.random() < 0.2) {
+    // rand 1 to 10
+    const randInteger = Math.floor(Math.random() * 10) + 1;
+    console.log("NormalLoop: Random chance for stalker:", randInteger);
+    if (randInteger < 3) {
       setShowStalker(true);
       console.log("Stalker spawned!");
     }
@@ -16,10 +18,10 @@ export default function NormalLoop() {
 
   useEffect(() => {
     // Unlock door immediately
-    const t = setTimeout(() => {
+    setTimeout(() => {
+      console.log("NormalLoop: Unlocking end door.");
       window.dispatchEvent(new CustomEvent("__unlock_end_door__"));
-    }, 100);
-    return () => clearTimeout(t);
+    }, 9000);
   }, []);
 
   return (

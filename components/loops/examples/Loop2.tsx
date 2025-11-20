@@ -52,6 +52,12 @@ function Loop2Impl({ loop }: LoopComponentProps) {
   }, [loop]);
 
   useEffect(() => {
+     setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("__unlock_end_door__"));
+    }, 3500);
+  }, [])
+
+  useEffect(() => {
     if (!scene) return;
 
     const wife = scene.getObjectByName("Wife");
@@ -125,19 +131,13 @@ function Loop2Impl({ loop }: LoopComponentProps) {
           ) {
             // Cache original intensity then turn it off
             offLightOriginalRef.current = { intensity: lightObj.intensity };
-            lightObj.intensity = 0.03;
+            lightObj.intensity = 0.1;
           }
         });
       }
     }, 100);
 
-    // Unlock door for now
-    const t = setTimeout(() => {
-      window.dispatchEvent(new CustomEvent("__unlock_end_door__"));
-    }, 3500);
-
     return () => {
-      clearTimeout(t);
       // Restore original rotations when Loop 2 unmounts
       for (const { object, rotationY } of originals) {
         object.rotation.y = rotationY;
